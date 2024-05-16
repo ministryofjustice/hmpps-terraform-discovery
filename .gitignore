@@ -1,0 +1,11 @@
+# dotenv environment variables file
+.env*
+tmp*
+helm_deploy/hmpps-terraform-discovery/charts/*.tgz
+
+.python-version
+.idea
+.vscode
+**/Chart.lock
+__pycache__/
+**/.DS_Store
