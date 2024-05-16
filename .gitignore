@@ -1,7 +1,7 @@
 # dotenv environment variables file
 .env*
 tmp*
-helm_deploy/hmpps-github-discovery/charts/*.tgz
+helm_deploy/hmpps-terraform-discovery/charts/*.tgz
 
 .python-version
 .idea
