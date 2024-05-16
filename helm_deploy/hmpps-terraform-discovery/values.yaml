@@ -50,9 +50,6 @@ generic-service:
     hmpps-terraform-discovery:
       SERVICE_CATALOGUE_API_ENDPOINT: "SERVICE_CATALOGUE_API_ENDPOINT"
       SERVICE_CATALOGUE_API_KEY: "SERVICE_CATALOGUE_API_KEY"
-      GITHUB_APP_ID: "GITHUB_APP_ID"
-      GITHUB_APP_INSTALLATION_ID: "GITHUB_APP_INSTALLATION_ID"
-      GITHUB_APP_PRIVATE_KEY: "GITHUB_APP_PRIVATE_KEY"
 
 generic-prometheus-alerts:
   targetApplication: hmpps-terraform-discovery
