@@ -1,0 +1,10 @@
+---
+# Per environment values which override defaults in hmpps-terraform-discovery/values.yaml
+
+generic-service:
+  env:
+    REFRESH_INTERVAL_HOURS: "6"
+    LOG_LEVEL: info
+
+generic-prometheus-alerts:
+  alertSeverity: hmpps-sre-alerts
