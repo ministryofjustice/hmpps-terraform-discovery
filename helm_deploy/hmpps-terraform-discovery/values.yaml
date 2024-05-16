@@ -12,8 +12,8 @@ generic-service:
   ingress:
     enabled: false
 
-  # Due to a bug cant disable/override the sub chart.
-  # https://github.com/helm/helm/pull/12162
+  # Due to a bug cant disable/override the sub chart.
+  # https://github.com/helm/helm/pull/12162
   # Have implemented a basic http health endpoint, until this bug is fixed.
   #livenessProbe: null
   #readinessProbe: null
