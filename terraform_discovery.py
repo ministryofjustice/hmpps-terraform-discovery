@@ -18,6 +18,7 @@ REFRESH_INTERVAL_HOURS = int(os.getenv("REFRESH_INTERVAL_HOURS", "6"))
 # Set maximum number of concurrent threads to run, try to avoid secondary github api limits.
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
+TEMP_DIR = os.getenv("TEMP_DIR", "/tmp/cp_envs")
 
 # limit results for testing/dev
 # See Strapi filter syntax https://docs.strapi.io/dev-docs/api/rest/filters-locale-publication
@@ -89,7 +90,7 @@ def process_repo(**component):
 
     data = { "name": namespace }
 
-    resources_dir = f"./tmp/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources"
+    resources_dir = f"{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources"
     if os.path.isdir(resources_dir):
       # tfparse is not thread-safe!
       with lock:
@@ -199,10 +200,10 @@ if __name__ == '__main__':
     # Start with an empty list.
     namespaces = []
 
-    if not os.path.isdir('./tmp'):
-      cp_envs_repo = Repo.clone_from("https://github.com/ministryofjustice/cloud-platform-environments.git", "./tmp")
+    if not os.path.isdir(TEMP_DIR):
+      cp_envs_repo = Repo.clone_from("https://github.com/ministryofjustice/cloud-platform-environments.git", TEMP_DIR)
     else:
-      cp_envs_repo = Repo('./tmp')
+      cp_envs_repo = Repo(TEMP_DIR)
       origin = cp_envs_repo.remotes.origin
       origin.pull()
 
