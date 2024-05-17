@@ -1,9 +1,5 @@
 name: Build
 
-permissions:
-  packages: write
-  contents: read
-
 on:
   workflow_call:
     inputs:
