@@ -1,4 +1,4 @@
-requests==2.31.0
+requests==2.32.0
 GitPython==3.1.37
 pyyaml==6.0.1
 tfparse==0.6.2
