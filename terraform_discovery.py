@@ -5,6 +5,7 @@ import http.server
 import socketserver
 import threading
 import logging
+import re
 # import json
 from time import sleep
 
@@ -99,6 +100,14 @@ def process_repo(**component):
         # log.debug(json.dumps(parsed, indent=2))
       #print(json.dumps(parsed, indent=2))
       for m in parsed['module']:
+        # Get terraform module version
+        tf_mod_version = str()
+        try:
+          regex = r"(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$"
+          tf_mod_version = re.search(regex, m['source'])[0]
+        except TypeError:
+          pass
+
         # Look for RDS instances.
         if "cloud-platform-terraform-rds-instance" in m['source']:
           rds_instance = m
@@ -110,7 +119,7 @@ def process_repo(**component):
           rds_instance.update({'tf_path': rds_instance['__tfmeta']['path']})
           rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
           rds_instance.update({'tf_line_start': rds_instance['__tfmeta']['line_start']})
-
+          rds_instance.update({'tf_mod_version': tf_mod_version})
           # Check for existing instance in SC and update same ID if so.
           try:
             # If there are any rds instances in the existing SC data
@@ -136,7 +145,7 @@ def process_repo(**component):
           elasticache_cluster.update({'tf_path': elasticache_cluster['__tfmeta']['path']})
           elasticache_cluster.update({'tf_line_end': elasticache_cluster['__tfmeta']['line_end']})
           elasticache_cluster.update({'tf_line_start': elasticache_cluster['__tfmeta']['line_start']})
-
+          elasticache_cluster.update({'tf_mod_version': tf_mod_version})
           # Check for existing instance in SC and update same ID if so.
           try:
             # If there are any rds instances in the existing SC data
