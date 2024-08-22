@@ -98,7 +98,7 @@ def process_repo(**component):
         log.debug(f"Thread locked for tfparse: {resources_dir}")
         parsed = load_from_path(resources_dir)
         # log.debug(json.dumps(parsed, indent=2))
-      print(json.dumps(parsed, indent=2))
+      # print(json.dumps(parsed, indent=2))
       for m in parsed['module']:
         # Get terraform module version
         tf_mod_version = str()
@@ -160,8 +160,8 @@ def process_repo(**component):
           del elasticache_cluster['__tfmeta']
           data.update({"elasticache_cluster": [elasticache_cluster]})
 
-      print(json.dumps(parsed['pingdom_check'], indent=2))
-      for r in parsed['pingdom-check']:
+      # print(json.dumps(parsed['pingdom_check'], indent=2))
+      for r in parsed['pingdom_check']:
         # Look for RDS instances.
         if "http" in r['type']:
           pingdom_check = r
@@ -177,8 +177,6 @@ def process_repo(**component):
           # Check for existing instance in SC and update same ID if so.
           try:
             # If there are any rds instances in the existing SC data
-            print("printing sc data ")
-            print(json.dumps(sc_data[0]["attributes"], indent=2))
             if sc_data[0]["attributes"]["pingdom_check"]:
               # Find the Pingdom check SC ID that matches
               rds_id = list(filter(lambda rds: rds['tf_path'] == pingdom_check['__tfmeta']['path'], sc_data[0]["attributes"]["pingdom_check"]))[0]['id']
