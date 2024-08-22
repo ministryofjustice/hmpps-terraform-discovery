@@ -160,7 +160,6 @@ def process_repo(**component):
           del elasticache_cluster['__tfmeta']
           data.update({"elasticache_cluster": [elasticache_cluster]})
 
-      # print(json.dumps(parsed['pingdom_check'], indent=2))
       if 'pingdom_check' in parsed.keys() :
         for r in parsed['pingdom_check']:
           # Look for RDS instances.
