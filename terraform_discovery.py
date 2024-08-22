@@ -151,7 +151,7 @@ def process_repo(**component):
             # If there are any rds instances in the existing SC data
             if sc_data[0]["attributes"]["elasticache_cluster"]:
               # Find the elasticache cluster SC ID that matches
-              elasticache_id = list(filter(lambda elastichache: elastichache['tf_path'] == elasticache_cluster['__tfmeta']['path'], sc_data[0]["attributes"]["elasticache_cluster"]))[0]['id']
+              elasticache_id = list(filter(lambda elasticache: elasticache['tf_path'] == elasticache_cluster['__tfmeta']['path'], sc_data[0]["attributes"]["elasticache_cluster"]))[0]['id']
               elasticache_cluster.update({'id': elasticache_id})
           except (IndexError,KeyError):
             pass
