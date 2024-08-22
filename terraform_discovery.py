@@ -6,7 +6,7 @@ import socketserver
 import threading
 import logging
 import re
-import json
+# import json
 from time import sleep
 
 from git import Repo
@@ -98,7 +98,7 @@ def process_repo(**component):
         log.debug(f"Thread locked for tfparse: {resources_dir}")
         parsed = load_from_path(resources_dir)
         # log.debug(json.dumps(parsed, indent=2))
-      # print(json.dumps(parsed, indent=2))
+      #print(json.dumps(parsed, indent=2))
       for m in parsed['module']:
         # Get terraform module version
         tf_mod_version = str()
