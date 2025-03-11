@@ -112,6 +112,7 @@ def process_repo(**component):
     )
     if r.status_code == 200:
       sc_data = r.json()['data']
+      log.debug(f'sc_data is {sc_data}')
       if sc_data and sc_data[0]['id']:
         log.debug('Found namespace ID')
         namespace_id = sc_data[0]['id']

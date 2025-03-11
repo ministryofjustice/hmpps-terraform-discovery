@@ -42,6 +42,7 @@ class ServiceCatalogue:
     self.environments_get = (
       f'{self.environments}?populate[0]=component{pagination_page_size}{sort_filter}'
     )
+    self.namespaces_get = 'namespaces?populate=*'
     self.connection_ok = self.test_connection()
 
   """

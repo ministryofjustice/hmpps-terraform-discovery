@@ -61,4 +61,7 @@ runs:
           --set 'version=${{ inputs.version }}' \
           --timeout 10m \
           --values 'helm_deploy/${{ steps.env.outputs.values-file }}' \
+          --set discoveryCronJob.env.SC_FILTER="${{ inputs.sc_filter }}" \
+          --set discoveryCronJob.env.SLACK_NOTIFY_CHANNEL="${{ inputs.slack_notify_channel }}" \
+          --set discoveryCronJob.env.SLACK_ALERT_CHANNEL="${{ inputs.slack_alert_channel }}" \
           --wait

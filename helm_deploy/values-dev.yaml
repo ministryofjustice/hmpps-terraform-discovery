@@ -1,10 +1,12 @@
 ---
 # Per environment values which override defaults in hmpps-terraform-discovery/values.yaml
 
-generic-service:
+discoveryCronJob:
+  enabled: true
   env:
-    REFRESH_INTERVAL_HOURS: "6"
     LOG_LEVEL: debug
+  cron:
+    github_terraform_discovery: "05 3/6 * * *"
 
 generic-prometheus-alerts:
   alertSeverity: hmpps-sre-alerts-nonprod

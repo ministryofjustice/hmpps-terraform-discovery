@@ -6,7 +6,6 @@ import threading
 import logging
 import re
 from classes.service_catalogue import ServiceCatalogue
-from classes.github import GithubSession
 from classes.slack import Slack
 
 # import json
@@ -16,20 +15,15 @@ from time import sleep
 
 
 class Services:
-  def __init__(self, sc_params, gh_params, am_params, cc_params, slack_params, log):
+  def __init__(self, sc_params, slack_params, log):
     self.slack = Slack(slack_params, log)
     self.sc = ServiceCatalogue(sc_params, log)
-    self.gh = GithubSession(gh_params, log)
     self.log = log
 
     if not self.sc.connection_ok:
       self.slack.alert(
         '*Terraform Discovery failed*: Unable to connect to the Service Catalogue'
       )
-      raise SystemExit()
-
-    if not self.gh.org:
-      self.slack.alert('*Terraform Discovery failed*: Unable to connect to Github')
       raise SystemExit()
 
 
@@ -60,8 +54,13 @@ def process_repo(component, lock, services):
       services.log.debug(f'skipping {namespace} namespace - already been processed')
       continue
 
-    if sc_namespace_data := services.sc.get_record('namespaces', 'name', namespace):
-      namespace_id = sc_namespace_data[0].get('id')
+    if sc_namespace_data := services.sc.get_record(
+      services.sc.namespaces_get, 'name', namespace
+    ):
+      sc_namespace_attributes = sc_namespace_data.get('attributes', {})
+      services.log.debug(f'Namespace data: {sc_namespace_data}')
+      namespace_id = sc_namespace_data.get('id')
+      services.log.debug(f'Namespace ID: {namespace_id}')
       data = {'name': namespace}
 
       resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
@@ -98,12 +97,12 @@ def process_repo(component, lock, services):
             # Check for existing instance in SC and update same ID if so.
             try:
               # If there are any rds instances in the existing SC data
-              if sc_namespace_data[0]['attributes']['rds_instance']:
+              if sc_namespace_attributes.get('rds_instance', {}):
                 # Find the RDS instance SC ID that matches
                 rds_id = list(
                   filter(
                     lambda rds: rds['tf_path'] == rds_instance['__tfmeta']['path'],
-                    sc_namespace_data[0]['attributes']['rds_instance'],
+                    sc_namespace_attributes.get('rds_instance', {}),
                   )
                 )[0]['id']
                 rds_instance.update({'id': rds_id})
@@ -139,13 +138,13 @@ def process_repo(component, lock, services):
             # Check for existing instance in SC and update same ID if so.
             try:
               # If there are any rds instances in the existing SC data
-              if sc_namespace_data[0]['attributes']['elasticache_cluster']:
+              if sc_namespace_attributes.get('elasticache_cluster', {}):
                 # Find the elasticache cluster SC ID that matches
                 elasticache_id = list(
                   filter(
                     lambda elasticache: elasticache['tf_path']
                     == elasticache_cluster['__tfmeta']['path'],
-                    sc_namespace_data[0]['attributes']['elasticache_cluster'],
+                    sc_namespace_attributes.get('elasticache_cluster', {}),
                   )
                 )[0]['id']
                 elasticache_cluster.update({'id': elasticache_id})
@@ -179,13 +178,13 @@ def process_repo(component, lock, services):
               # Check for existing instance in SC and update same ID if so.
               try:
                 # If there are any rds instances in the existing SC data
-                if sc_namespace_data[0]['attributes']['pingdom_check']:
+                if sc_namespace_attributes.get('pingdom_check', {}):
                   # Find the Pingdom check SC ID that matches
                   pingdom_id = list(
                     filter(
                       lambda pingdom: pingdom['tf_path']
                       == pingdom_check['__tfmeta']['path'],
-                      sc_namespace_data[0]['attributes']['pingdom_check'],
+                      sc_namespace_attributes.get('pingdom_check', {}),
                     )
                   )[0]['id']
                   pingdom_check.update({'id': pingdom_id})
@@ -249,25 +248,30 @@ def main():
     'filter': os.getenv('SC_FILTER', ''),
   }
 
-  # Github parameters
-  gh_params = {
-    'app_id': int(os.getenv('GITHUB_APP_ID')),
-    'app_installation_id': int(os.getenv('GITHUB_APP_INSTALLATION_ID')),
-    'app_private_key': os.getenv('GITHUB_APP_PRIVATE_KEY'),
-  }
-
-  services = Services(sc_params, gh_params, slack_params, log)
+  services = Services(sc_params, slack_params, log)
 
   if not os.path.isdir(TEMP_DIR):
-    cp_envs_repo = Repo.clone_from(
-      'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
-    )
+    try:
+      cp_envs_repo = Repo.clone_from(
+        'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
+      )
+    except Exception as e:
+      services.slack.alert(
+        f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
+      )
+      raise SystemExit()
   else:
-    cp_envs_repo = Repo(TEMP_DIR)
-    origin = cp_envs_repo.remotes.origin
-    origin.pull()
+    try:
+      cp_envs_repo = Repo(TEMP_DIR)
+      origin = cp_envs_repo.remotes.origin
+      origin.pull()
+    except Exception as e:
+      services.slack.alert(
+        f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
+      )
+      raise SystemExit()
 
-  sc_data = services.sc.get_all_records('sc.components')
+  sc_data = services.sc.get_all_records(services.sc.components_get)
   process_components(sc_data, services)
 
 
