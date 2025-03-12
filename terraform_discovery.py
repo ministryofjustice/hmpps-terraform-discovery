@@ -1,275 +1,279 @@
 #!/usr/bin/env python
-'''Github discovery - queries the github API for info about hmpps services and stores the results in the service catalogue'''
+"""Github discovery - queries the github API for info about hmpps services and stores the results in the service catalogue"""
+
 import os
-import http.server
-import socketserver
 import threading
 import logging
 import re
+from classes.service_catalogue import ServiceCatalogue
+from classes.slack import Slack
+
 # import json
+from git import Repo
+from tfparse import load_from_path
 from time import sleep
 
-from git import Repo
-import requests
-from tfparse import load_from_path
 
-SC_API_ENDPOINT = os.getenv("SERVICE_CATALOGUE_API_ENDPOINT")
-SC_API_TOKEN = os.getenv("SERVICE_CATALOGUE_API_KEY")
-REFRESH_INTERVAL_HOURS = int(os.getenv("REFRESH_INTERVAL_HOURS", "6"))
+class Services:
+  def __init__(self, sc_params, slack_params, log):
+    self.slack = Slack(slack_params, log)
+    self.sc = ServiceCatalogue(sc_params, log)
+    self.log = log
+
+    if not self.sc.connection_ok:
+      self.slack.alert(
+        '*Terraform Discovery failed*: Unable to connect to the Service Catalogue'
+      )
+      raise SystemExit()
+
+
 # Set maximum number of concurrent threads to run, try to avoid secondary github api limits.
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
-TEMP_DIR = os.getenv("TEMP_DIR", "/tmp/cp_envs")
+TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
+namespaces = []
 
-# limit results for testing/dev
-# See Strapi filter syntax https://docs.strapi.io/dev-docs/api/rest/filters-locale-publication
-# Example filter string = '&filters[name][$contains]=example'
-SC_FILTER = os.getenv("SC_FILTER", '')
-SC_PAGE_SIZE=10
-SC_PAGINATION_PAGE_SIZE=f"&pagination[pageSize]={SC_PAGE_SIZE}"
-# Example Sort filter
-#SC_SORT='&sort=updatedAt:asc'
-SC_SORT = ''
-SC_ENDPOINT = f"{SC_API_ENDPOINT}/v1/components?populate=environments{SC_FILTER}{SC_PAGINATION_PAGE_SIZE}{SC_SORT}"
 
-class HealthHttpRequestHandler(http.server.SimpleHTTPRequestHandler):
-  def do_GET(self):
-    self.send_response(200)
-    self.send_header("Content-type", "text/plain")
-    self.end_headers()
-    self.wfile.write(bytes("UP", "utf8"))
-    return
+def update_sc_namespace(ns_id, data, services):
+  services.log.debug(f'Namespace data: {data}')
+  if not ns_id:
+    services.sc.add('namespaces', {'data': data})
+  else:
+    services.sc.update('namespaces', ns_id, {'data': data})
 
-def update_sc_namespace(ns_id, data):
-  try:
-    log.debug(data)
-    if not ns_id:
-      x = requests.post(f"{SC_API_ENDPOINT}/v1/namespaces", headers=sc_api_headers, json = {"data": data}, timeout=10)
-    else:
-      x = requests.put(f"{SC_API_ENDPOINT}/v1/namespaces/{ns_id}", headers=sc_api_headers, json = {"data": data}, timeout=10)
-    if x.status_code == 200:
-      log.info(f"Successfully updated namespace id {ns_id}: {x.status_code}")
-    else:
-      log.info(f"Received non-200 response from service catalogue for namespace id {ns_id}: {x.status_code} {x.content}")
-  except Exception as e:
-    log.error(f"Error updating namespace in the SC: {e}")
 
-def get_sc_product_id(product_id):
-  try:
-    r = requests.get(f"{SC_API_ENDPOINT}/v1/products?filters[p_id][$eq]={product_id}", headers=sc_api_headers, timeout=10)
-    if r.status_code == 200:
-      log.info(f"Successfully found product with internal ID {product_id}: {r.status_code}")
-      return r.json()['data'][0]['id']
-    else:
-      log.info(f"Received non-200 response from service catalogue searching for internal product ID: {product_id}: {r.status_code} {r.content}")
-      return False
-  except Exception as e:
-    log.error(f"Error getting product ID from SC: {e}")
-    return False
-
-def process_repo(**component):
-  for e in component["attributes"]["environments"]:
-    namespace = e['namespace']
-    if not namespace in namespaces:
+def process_repo(component, lock, services):
+  global namespaces
+  for environment in component['attributes']['environments']:
+    namespace = environment.get('namespace', {})
+    if namespace not in namespaces:
       # Add namespace to list of namespaces being done.
       namespaces.append(namespace)
     else:
       # Skip this namespace as it's already processed.
-      log.debug(f"skipping {namespace} namespace - already been processed")
+      services.log.debug(f'skipping {namespace} namespace - already been processed')
       continue
 
-    sc_filter_namespace = f"&filters[name][$eq]={namespace}&populate=*"
-    r = requests.get(f"{SC_API_ENDPOINT}/v1/namespaces?{sc_filter_namespace}", headers=sc_api_headers, timeout=10)
-    if r.status_code == 200:
-      sc_data = r.json()["data"]
-      if sc_data and sc_data[0]['id']:
-        log.debug("Found namespace ID")
-        namespace_id = sc_data[0]['id']
-      else:
-        log.debug("No namespace ID found")
-        namespace_id = None
+    if sc_namespace_data := services.sc.get_record(
+      services.sc.namespaces_get, 'name', namespace
+    ):
+      sc_namespace_attributes = sc_namespace_data.get('attributes', {})
+      services.log.debug(f'Namespace data: {sc_namespace_data}')
+      namespace_id = sc_namespace_data.get('id')
+      services.log.debug(f'Namespace ID: {namespace_id}')
+      data = {'name': namespace}
 
-    data = { "name": namespace }
-
-    resources_dir = f"{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources"
-    if os.path.isdir(resources_dir):
-      # tfparse is not thread-safe!
-      with lock:
-        log.debug(f"Thread locked for tfparse: {resources_dir}")
-        parsed = load_from_path(resources_dir)
-        # log.debug(json.dumps(parsed, indent=2))
-      #print(json.dumps(parsed, indent=2))
-      for m in parsed['module']:
-        # Get terraform module version
-        tf_mod_version = str()
-        try:
-          regex = r"(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$"
-          tf_mod_version = re.search(regex, m['source'])[0]
-        except TypeError:
-          pass
-
-        # Look for RDS instances.
-        if "cloud-platform-terraform-rds-instance" in m['source']:
-          rds_instance = m
-          # Delete ID that is generated by tfparse
-          del rds_instance['id']
-          # Process fields
-          rds_instance.update({'tf_label': rds_instance['__tfmeta']['label']})
-          rds_instance.update({'tf_filename': rds_instance['__tfmeta']['filename']})
-          rds_instance.update({'tf_path': rds_instance['__tfmeta']['path']})
-          rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
-          rds_instance.update({'tf_line_start': rds_instance['__tfmeta']['line_start']})
-          rds_instance.update({'tf_mod_version': tf_mod_version})
-          # Check for existing instance in SC and update same ID if so.
+      resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
+      if os.path.isdir(resources_dir):
+        # tfparse is not thread-safe!
+        with lock:
+          services.log.debug(f'Thread locked for tfparse: {resources_dir}')
+          parsed = load_from_path(resources_dir)
+          # log.debug(json.dumps(parsed, indent=2))
+        # print(json.dumps(parsed, indent=2))
+        for m in parsed['module']:
+          # Get terraform module version
+          tf_mod_version = str()
           try:
-            # If there are any rds instances in the existing SC data
-            if sc_data[0]["attributes"]["rds_instance"]:
-              # Find the RDS instance SC ID that matches
-              rds_id = list(filter(lambda rds: rds['tf_path'] == rds_instance['__tfmeta']['path'], sc_data[0]["attributes"]["rds_instance"]))[0]['id']
-              rds_instance.update({'id': rds_id})
-          except IndexError:
+            regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$'
+            tf_mod_version = re.search(regex, m['source'])[0]
+          except TypeError:
             pass
 
-          # Clean up field not used in post to SC
-          del rds_instance['__tfmeta']
-          data.update({"rds_instance": [rds_instance]})
-
-        # Look for elasticache instances.
-        if "cloud-platform-terraform-elasticache-cluster" in m['source']:
-          elasticache_cluster = m
-          # Delete ID that is generated by tfparse
-          del elasticache_cluster['id']
-          # Process fields
-          elasticache_cluster.update({'tf_label': elasticache_cluster['__tfmeta']['label']})
-          elasticache_cluster.update({'tf_filename': elasticache_cluster['__tfmeta']['filename']})
-          elasticache_cluster.update({'tf_path': elasticache_cluster['__tfmeta']['path']})
-          elasticache_cluster.update({'tf_line_end': elasticache_cluster['__tfmeta']['line_end']})
-          elasticache_cluster.update({'tf_line_start': elasticache_cluster['__tfmeta']['line_start']})
-          elasticache_cluster.update({'tf_mod_version': tf_mod_version})
-          # Check for existing instance in SC and update same ID if so.
-          try:
-            # If there are any rds instances in the existing SC data
-            if sc_data[0]["attributes"]["elasticache_cluster"]:
-              # Find the elasticache cluster SC ID that matches
-              elasticache_id = list(filter(lambda elasticache: elasticache['tf_path'] == elasticache_cluster['__tfmeta']['path'], sc_data[0]["attributes"]["elasticache_cluster"]))[0]['id']
-              elasticache_cluster.update({'id': elasticache_id})
-          except (IndexError,KeyError):
-            pass
-
-          # Clean up field not used in post to SC
-          del elasticache_cluster['__tfmeta']
-          data.update({"elasticache_cluster": [elasticache_cluster]})
-
-      if 'pingdom_check' in parsed.keys() :
-        for r in parsed['pingdom_check']:
           # Look for RDS instances.
-          if "http" in r['type']:
-            pingdom_check = r
+          if 'cloud-platform-terraform-rds-instance' in m['source']:
+            rds_instance = m
             # Delete ID that is generated by tfparse
-            del pingdom_check['id']
+            del rds_instance['id']
             # Process fields
-            pingdom_check.update({'tf_label': pingdom_check['__tfmeta']['label']})
-            pingdom_check.update({'tf_filename': pingdom_check['__tfmeta']['filename']})
-            pingdom_check.update({'tf_path': pingdom_check['__tfmeta']['path']})
-            pingdom_check.update({'tf_line_end': pingdom_check['__tfmeta']['line_end']})
-            pingdom_check.update({'tf_line_start': pingdom_check['__tfmeta']['line_start']})
-            # pingdom_check.update({'tf_mod_version': tf_mod_version})
+            rds_instance.update({'tf_label': rds_instance['__tfmeta']['label']})
+            rds_instance.update({'tf_filename': rds_instance['__tfmeta']['filename']})
+            rds_instance.update({'tf_path': rds_instance['__tfmeta']['path']})
+            rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
+            rds_instance.update(
+              {'tf_line_start': rds_instance['__tfmeta']['line_start']}
+            )
+            rds_instance.update({'tf_mod_version': tf_mod_version})
             # Check for existing instance in SC and update same ID if so.
             try:
               # If there are any rds instances in the existing SC data
-              if sc_data[0]["attributes"]["pingdom_check"]:
-                # Find the Pingdom check SC ID that matches
-                pingdom_id = list(filter(lambda pingdom: pingdom['tf_path'] == pingdom_check['__tfmeta']['path'], sc_data[0]["attributes"]["pingdom_check"]))[0]['id']
-                pingdom_check.update({'id': pingdom_id})
+              if sc_namespace_attributes.get('rds_instance', {}):
+                # Find the RDS instance SC ID that matches
+                rds_id = list(
+                  filter(
+                    lambda rds: rds['tf_path'] == rds_instance['__tfmeta']['path'],
+                    sc_namespace_attributes.get('rds_instance', {}),
+                  )
+                )[0]['id']
+                rds_instance.update({'id': rds_id})
             except IndexError:
               pass
 
             # Clean up field not used in post to SC
-            del pingdom_check['__tfmeta']
-            data.update({"pingdom_check": [pingdom_check]})
+            del rds_instance['__tfmeta']
+            data.update({'rds_instance': [rds_instance]})
 
-      print(data)
-      update_sc_namespace(namespace_id, data)
+          # Look for elasticache instances.
+          if 'cloud-platform-terraform-elasticache-cluster' in m['source']:
+            elasticache_cluster = m
+            # Delete ID that is generated by tfparse
+            del elasticache_cluster['id']
+            # Process fields
+            elasticache_cluster.update(
+              {'tf_label': elasticache_cluster['__tfmeta']['label']}
+            )
+            elasticache_cluster.update(
+              {'tf_filename': elasticache_cluster['__tfmeta']['filename']}
+            )
+            elasticache_cluster.update(
+              {'tf_path': elasticache_cluster['__tfmeta']['path']}
+            )
+            elasticache_cluster.update(
+              {'tf_line_end': elasticache_cluster['__tfmeta']['line_end']}
+            )
+            elasticache_cluster.update(
+              {'tf_line_start': elasticache_cluster['__tfmeta']['line_start']}
+            )
+            elasticache_cluster.update({'tf_mod_version': tf_mod_version})
+            # Check for existing instance in SC and update same ID if so.
+            try:
+              # If there are any rds instances in the existing SC data
+              if sc_namespace_attributes.get('elasticache_cluster', {}):
+                # Find the elasticache cluster SC ID that matches
+                elasticache_id = list(
+                  filter(
+                    lambda elasticache: elasticache['tf_path']
+                    == elasticache_cluster['__tfmeta']['path'],
+                    sc_namespace_attributes.get('elasticache_cluster', {}),
+                  )
+                )[0]['id']
+                elasticache_cluster.update({'id': elasticache_id})
+            except (IndexError, KeyError):
+              pass
 
-  return True
+            # Clean up field not used in post to SC
+            del elasticache_cluster['__tfmeta']
+            data.update({'elasticache_cluster': [elasticache_cluster]})
 
-def startHttpServer():
-  handler_object = HealthHttpRequestHandler
-  with socketserver.TCPServer(("", 8080), handler_object) as httpd:
-    httpd.serve_forever()
+        if 'pingdom_check' in parsed.keys():
+          for r in parsed['pingdom_check']:
+            # Look for RDS instances.
+            if 'http' in r['type']:
+              pingdom_check = r
+              # Delete ID that is generated by tfparse
+              del pingdom_check['id']
+              # Process fields
+              pingdom_check.update({'tf_label': pingdom_check['__tfmeta']['label']})
+              pingdom_check.update(
+                {'tf_filename': pingdom_check['__tfmeta']['filename']}
+              )
+              pingdom_check.update({'tf_path': pingdom_check['__tfmeta']['path']})
+              pingdom_check.update(
+                {'tf_line_end': pingdom_check['__tfmeta']['line_end']}
+              )
+              pingdom_check.update(
+                {'tf_line_start': pingdom_check['__tfmeta']['line_start']}
+              )
+              # pingdom_check.update({'tf_mod_version': tf_mod_version})
+              # Check for existing instance in SC and update same ID if so.
+              try:
+                # If there are any rds instances in the existing SC data
+                if sc_namespace_attributes.get('pingdom_check', {}):
+                  # Find the Pingdom check SC ID that matches
+                  pingdom_id = list(
+                    filter(
+                      lambda pingdom: pingdom['tf_path']
+                      == pingdom_check['__tfmeta']['path'],
+                      sc_namespace_attributes.get('pingdom_check', {}),
+                    )
+                  )[0]['id']
+                  pingdom_check.update({'id': pingdom_id})
+              except IndexError:
+                pass
 
-def process_components(data):
-  log.info(f"Processing batch of {len(data)} components...")
-  for component in data:
+              # Clean up field not used in post to SC
+              del pingdom_check['__tfmeta']
+              data.update({'pingdom_check': [pingdom_check]})
+
+        services.log.debug(f'Namespace data: {data}')
+        update_sc_namespace(namespace_id, data, services)
+
+    return True
+
+
+def process_components(components, services):
+  services.log.info(f'Processing batch of {len(components)} components...')
+  lock = threading.Lock()
+  component_count = 1
+  for component in components:
     t_repo = threading.local()
-    t_repo = threading.Thread(target=process_repo, kwargs=component, daemon=True)
+    t_repo = threading.Thread(
+      target=process_repo, args=(component, lock, services), daemon=True
+    )
 
     # Apply limit on total active threads
-    while threading.active_count() > (MAX_THREADS-1):
-      log.debug(f"Active Threads={threading.active_count()}, Max Threads={MAX_THREADS}")
+    while threading.active_count() > (MAX_THREADS - 1):
+      services.log.debug(
+        f'Active Threads={threading.active_count()}, Max Threads={MAX_THREADS}'
+      )
       sleep(10)
 
     t_repo.start()
-    component_name = component["attributes"]["name"]
-    log.info(f"Started thread for {component_name}")
+    component_name = component['attributes']['name']
+    services.log.info(
+      f'Started thread for {component_name} ({component_count}/{len(components)})'
+    )
+    component_count += 1
 
-if __name__ == '__main__':
+  t_repo.join()
+  services.log.info('Completed processing components')
+
+
+def main():
   logging.basicConfig(
-      format='[%(asctime)s] %(levelname)s %(threadName)s %(message)s', level=LOG_LEVEL)
+    format='[%(asctime)s] %(levelname)s %(threadName)s %(message)s', level=LOG_LEVEL
+  )
   log = logging.getLogger(__name__)
 
-  sc_api_headers = {"Authorization": f"Bearer {SC_API_TOKEN}", "Content-Type":"application/json","Accept": "application/json"}
+  slack_params = {
+    'token': os.getenv('SLACK_BOT_TOKEN'),
+    'notify_channel': os.getenv('SLACK_NOTIFY_CHANNEL', ''),
+    'alert_channel': os.getenv('SLACK_ALERT_CHANNEL', ''),
+  }
 
-  # Test connection to Service Catalogue
-  try:
-    r = requests.head(f"{SC_API_ENDPOINT}/_health", headers=sc_api_headers, timeout=10)
-    log.info(f"Successfully connected to the Service Catalogue. {r.status_code}")
-  except Exception as e:
-    log.critical("Unable to connect to the Service Catalogue.")
-    raise SystemExit(e) from e
+  # service catalogue parameters
+  sc_params = {
+    'url': os.getenv('SERVICE_CATALOGUE_API_ENDPOINT'),
+    'key': os.getenv('SERVICE_CATALOGUE_API_KEY'),
+    'filter': os.getenv('SC_FILTER', ''),
+  }
 
-  # Start health endpoint.
-  httpHealth = threading.Thread(target=startHttpServer, daemon=True)
-  httpHealth.start()
-  lock = threading.Lock()
+  services = Services(sc_params, slack_params, log)
 
-  while True:
-
-    # Start with an empty list.
-    namespaces = []
-
-    if not os.path.isdir(TEMP_DIR):
-      cp_envs_repo = Repo.clone_from("https://github.com/ministryofjustice/cloud-platform-environments.git", TEMP_DIR)
-    else:
+  if not os.path.isdir(TEMP_DIR):
+    try:
+      cp_envs_repo = Repo.clone_from(
+        'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
+      )
+    except Exception as e:
+      services.slack.alert(
+        f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
+      )
+      raise SystemExit()
+  else:
+    try:
       cp_envs_repo = Repo(TEMP_DIR)
       origin = cp_envs_repo.remotes.origin
       origin.pull()
-
-    try:
-      r = requests.get(SC_ENDPOINT, headers=sc_api_headers, timeout=10)
-      log.debug(r)
-      if r.status_code == 200:
-        j_meta = r.json()["meta"]["pagination"]
-        log.debug(f"Got result page: {j_meta['page']} from SC")
-        sc_data = r.json()["data"]
-        process_components(sc_data)
-      else:
-        raise Exception(f"Received non-200 response from Service Catalogue: {r.status_code}")
-
-      # Loop over the remaining pages and return one at a time
-      num_pages = j_meta['pageCount']
-      for p in range(2, num_pages+1):
-        page=f"&pagination[page]={p}"
-        r = requests.get(f"{SC_ENDPOINT}{page}", headers=sc_api_headers, timeout=10)
-        if r.status_code == 200:
-          j_meta = r.json()["meta"]["pagination"]
-          log.debug(f"Got result page: {j_meta['page']} from SC")
-          sc_data = r.json()["data"]
-          process_components(sc_data)
-        else:
-          raise Exception(f"Received non-200 response from Service Catalogue: {r.status_code}")
-
     except Exception as e:
-      log.error(f"Problem with Service Catalogue API. {e}")
+      services.slack.alert(
+        f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
+      )
+      raise SystemExit()
 
-    sleep((REFRESH_INTERVAL_HOURS * 60 * 60))
+  sc_data = services.sc.get_all_records(services.sc.components_get)
+  process_components(sc_data, services)
+
+
+if __name__ == '__main__':
+  main()

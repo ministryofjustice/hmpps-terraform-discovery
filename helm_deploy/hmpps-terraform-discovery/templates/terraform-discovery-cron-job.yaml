@@ -1,0 +1,37 @@
+{{- if .Values.discoveryCronJob.enabled -}}
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hmpps-terraform-discovery
+spec:
+  schedule: "{{ .Values.cron.github_terrarform_discovery }}"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 5
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # Set to 0 to prevent retries after job failure - API Rate limit is 15000 per hour so reties will not solve the issue
+      ttlSecondsAfterFinished: 345600
+      template:
+        spec:
+          containers:
+            - name: hmpps-terraform-discovery
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              command: ["python", "-u", "/app/terraform_discovery.py"]
+              env:
+                - name: PATH
+                  value: "/home/appuser/.local:/usr/local/bin:$PATH"
+              securityContext:
+                capabilities:
+                  drop:
+                  - ALL
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                seccompProfile:
+                  type: RuntimeDefault
+      {{- include "discoveryCronJob.envs" .Values | nindent 14 }}
+          restartPolicy: Never
+{{- end }}
