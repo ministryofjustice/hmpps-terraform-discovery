@@ -1,6 +1,6 @@
 ---
 image:
-  repository: ghcr.io/ministryofjustice/hmpps-github-discovery
+  repository: ghcr.io/ministryofjustice/hmpps-terraform-discovery
   tag: latest
 
 generic-prometheus-alerts:

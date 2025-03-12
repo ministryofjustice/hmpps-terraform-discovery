@@ -6,7 +6,7 @@ discoveryCronJob:
   env:
     LOG_LEVEL: debug
   cron:
-    github_terraform_discovery: "05 3/6 * * *"
+    github_terraform_discovery: "05 9 * * *"
 
 generic-prometheus-alerts:
   alertSeverity: hmpps-sre-alerts-nonprod
