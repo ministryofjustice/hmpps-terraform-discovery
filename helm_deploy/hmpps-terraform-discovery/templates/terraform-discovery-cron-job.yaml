@@ -6,7 +6,7 @@ kind: CronJob
 metadata:
   name: hmpps-terraform-discovery
 spec:
-  schedule: "{{ .Values.cron.github_terrarform_discovery }}"
+  schedule: "{{ .Values.cron.github_terraform_discovery }}"
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 5
   startingDeadlineSeconds: 600
