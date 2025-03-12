@@ -19,7 +19,7 @@ spec:
         spec:
           containers:
             - name: hmpps-terraform-discovery
-              image: ghcr.io/ministryofjustice/hmpps-terraform-discovery
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
               command: ["python", "-u", "/app/terraform_discovery.py"]
               env:
                 - name: PATH

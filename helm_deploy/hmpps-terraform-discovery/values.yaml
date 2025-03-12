@@ -1,12 +1,12 @@
 ---
+image:
+  repository: ghcr.io/ministryofjustice/hmpps-github-discovery
+  tag: latest
+
 generic-prometheus-alerts:
   targetApplication: hmpps-terraform-discovery
 
 discoveryCronJob:
-  image:
-    repository: ghcr.io/ministryofjustice/hmpps-terraform-discovery
-    port: 8080
-    tag: xxx # override at deployment time
   namespace_secrets:
     hmpps-terraform-discovery:
       SERVICE_CATALOGUE_API_ENDPOINT: "SERVICE_CATALOGUE_API_ENDPOINT"
