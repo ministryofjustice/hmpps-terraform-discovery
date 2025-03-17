@@ -45,6 +45,7 @@ jobs:
     with:
       environment: dev
       app_version: ${{ needs.build.outputs.version }}
+      helm_additional_args: "--set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{vars.SLACK_ALERT_CHANNEL}}'"
     secrets: inherit
 
   deploy_to_prod:
@@ -56,4 +57,5 @@ jobs:
     with:
       environment: prod
       app_version: ${{ needs.build.outputs.version }}
+      helm_additional_args: "--set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{vars.SLACK_ALERT_CHANNEL}}'"
     secrets: inherit
