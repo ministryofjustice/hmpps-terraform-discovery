@@ -91,10 +91,17 @@ def process_repo(component, lock, services):
           rds_instance.update({'tf_filename': rds_instance['__tfmeta']['filename']})
           rds_instance.update({'tf_path': rds_instance['__tfmeta']['path']})
           rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
+
+          # convert db_max_allocated_storage to string, as occasionally it is seen as a integer
+          if 'db_max_allocated_storage' in rds_instance and isinstance(rds_instance['db_max_allocated_storage'], int):
+            services.log.debug(f"Converting db_max_allocated_storage to string: {rds_instance['db_max_allocated_storage']}")
+            rds_instance['db_max_allocated_storage']=str(rds_instance['db_max_allocated_storage'])
+
           rds_instance.update(
             {'tf_line_start': rds_instance['__tfmeta']['line_start']}
           )
           rds_instance.update({'tf_mod_version': tf_mod_version})
+
           # Check for existing instance in SC and update same ID if so.
           try:
             # If there are any rds instances in the existing SC data
