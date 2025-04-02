@@ -46,6 +46,7 @@ def process_repo(component, lock, services):
   global namespaces
   for environment in component['attributes']['environments']:
     namespace = environment.get('namespace', {})
+    services.log.debug(f'Processing namespace: {namespace} ...')
     if namespace not in namespaces:
       # Add namespace to list of namespaces being done.
       namespaces.append(namespace)
@@ -56,19 +57,31 @@ def process_repo(component, lock, services):
 
     namespace_id = None
     sc_namespace_attributes = {}
-    if sc_namespace_data := services.sc.get_record(services.sc.namespaces_get, 'name', namespace):
+    # get existing namespace data from the service catalogue
+    if sc_namespace_data := services.sc.get_record(
+      services.sc.namespaces_get, 'name', namespace
+    ):
       sc_namespace_attributes = sc_namespace_data.get('attributes', {})
-      services.log.debug(f'Namespace data: {sc_namespace_data}')
+      services.log.debug(f'Existing namespace data: {sc_namespace_data}')
       namespace_id = sc_namespace_data.get('id')
-      services.log.debug(f'Namespace ID: {namespace_id}')
+      services.log.debug(f'Existing namespace ID: {namespace_id}')
+    else:
+      services.log.warning(
+        f'No existing namespace data found for {namespace} in Service Catalogue'
+      )
 
+    # Set the data dictionary to start off with the namespace name
     data = {'name': namespace}
 
+    # Parse the naedspace terraform files
     resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
     if os.path.isdir(resources_dir):
+      services.log.debug(f'Found {resources_dir}...')
       # tfparse is not thread-safe!
       with lock:
-        services.log.debug(f'Thread locked for tfparse: {resources_dir}')
+        services.log.debug(
+          f'Thread locked for tfparse: {resources_dir} while the data is being loaded'
+        )
         parsed = load_from_path(resources_dir)
         # log.debug(json.dumps(parsed, indent=2))
       # print(json.dumps(parsed, indent=2))
@@ -93,13 +106,17 @@ def process_repo(component, lock, services):
           rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
 
           # convert db_max_allocated_storage to string, as occasionally it is seen as a integer
-          if 'db_max_allocated_storage' in rds_instance and isinstance(rds_instance['db_max_allocated_storage'], int):
-            services.log.debug(f"Converting db_max_allocated_storage to string: {rds_instance['db_max_allocated_storage']}")
-            rds_instance['db_max_allocated_storage']=str(rds_instance['db_max_allocated_storage'])
+          if 'db_max_allocated_storage' in rds_instance and isinstance(
+            rds_instance['db_max_allocated_storage'], int
+          ):
+            services.log.debug(
+              f'Converting db_max_allocated_storage to string: {rds_instance["db_max_allocated_storage"]}'
+            )
+            rds_instance['db_max_allocated_storage'] = str(
+              rds_instance['db_max_allocated_storage']
+            )
 
-          rds_instance.update(
-            {'tf_line_start': rds_instance['__tfmeta']['line_start']}
-          )
+          rds_instance.update({'tf_line_start': rds_instance['__tfmeta']['line_start']})
           rds_instance.update({'tf_mod_version': tf_mod_version})
 
           # Check for existing instance in SC and update same ID if so.
@@ -185,7 +202,7 @@ def process_repo(component, lock, services):
               # pingdom_check.update({'tf_mod_version': tf_mod_version})
               # Check for existing instance in SC and update same ID if so.
               try:
-                # If there are any rds instances in the existing SC data
+                # If there are any pingdom instances in the existing SC data
                 if sc_namespace_attributes.get('pingdom_check', {}):
                   # Find the Pingdom check SC ID that matches
                   pingdom_id = list(
@@ -203,7 +220,7 @@ def process_repo(component, lock, services):
               del pingdom_check['__tfmeta']
               data.update({'pingdom_check': [pingdom_check]})
 
-    services.log.debug(f'Namespace data: {data}')
+    services.log.debug(f'Updated / inserted namespace data: {data}')
     update_sc_namespace(namespace_id, data, services)
 
   return True
@@ -264,6 +281,9 @@ def main():
         'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
       )
     except Exception as e:
+      services.log.error(
+        f'Unable to clone cloud-platform-environments repo: {e} - quitting'
+      )
       services.slack.alert(
         f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
       )
@@ -274,13 +294,17 @@ def main():
       origin = cp_envs_repo.remotes.origin
       origin.pull()
     except Exception as e:
+      services.log.error(
+        f'Unable to pull latest version of cloud-platform-environments repo: {e} - quitting'
+      )
       services.slack.alert(
         f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
       )
       raise SystemExit()
-
+  services.log.debug('Getting all components from the Service Catalogue')
   sc_data = services.sc.get_all_records(services.sc.components_get)
   process_components(sc_data, services)
+  services.log.info('Terraform discovery completed')
 
 
 if __name__ == '__main__':

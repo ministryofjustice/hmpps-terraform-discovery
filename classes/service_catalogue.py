@@ -84,22 +84,25 @@ class ServiceCatalogue:
 
       # Loop over the remaining pages and return one at a time
       num_pages = j_meta['pageCount']
-      for p in range(2, num_pages + 1):
-        if '?' in table:  # add an extra parameter if there are already parameters
-          page = f'&pagination[page]={p}'
-        else:  # otherwise use ? to denote the first parameter
-          page = f'?pagination[page]={p}'
-        r = requests.get(
-          f'{self.url}/v1/{table}{page}', headers=self.api_headers, timeout=10
-        )
-        if r.status_code == 200:
-          j_meta = r.json()['meta']['pagination']
-          self.log.debug(f'Got result page: {j_meta["page"]} from SC')
-          json_data.extend(r.json()['data'])
-        else:
-          raise Exception(
-            f'Received non-200 response from Service Catalogue when reading all records from {table}: {r.status_code}'
+      # if the dataset is empty, the pageCount will be 0 - no point in trying to get more pages
+      if num_pages > 0:
+        self.log.debug(f'Found {num_pages} pages of results')
+        for p in range(2, num_pages + 1):
+          if '?' in table:  # add an extra parameter if there are already parameters
+            page = f'&pagination[page]={p}'
+          else:  # otherwise use ? to denote the first parameter
+            page = f'?pagination[page]={p}'
+          r = requests.get(
+            f'{self.url}/v1/{table}{page}', headers=self.api_headers, timeout=10
           )
+          if r.status_code == 200:
+            j_meta = r.json()['meta']['pagination']
+            self.log.debug(f'Got result page: {j_meta["page"]} from SC')
+            json_data.extend(r.json()['data'])
+          else:
+            raise Exception(
+              f'Received non-200 response from Service Catalogue when reading all records from {table}: {r.status_code}'
+            )
 
     except Exception as e:
       self.log.error(
