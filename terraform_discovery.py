@@ -37,8 +37,10 @@ namespaces = []
 def update_sc_namespace(ns_id, data, services):
   services.log.debug(f'Namespace data: {data}')
   if not ns_id:
+    services.log.debug(f'Adding new namespace to SC: {data}')
     services.sc.add('namespaces', data)
   else:
+    services.log.debug(f'Updating namespace in SC: {data}')
     services.sc.update('namespaces', ns_id, data)
 
 
@@ -46,6 +48,7 @@ def process_repo(component, lock, services):
   global namespaces
   for environment in component['attributes']['environments']:
     namespace = environment.get('namespace', {})
+    services.log.debug(f'Processing environment/namepace: {environment["name"]}:{namespace}')
     if namespace not in namespaces:
       # Add namespace to list of namespaces being done.
       namespaces.append(namespace)
@@ -142,6 +145,11 @@ def process_repo(component, lock, services):
           elasticache_cluster.update(
             {'tf_line_start': elasticache_cluster['__tfmeta']['line_start']}
           )
+
+          # if parameter_group_name refers to another tf resource, get the name of the resource.
+          if 'parameter_group_name' in elasticache_cluster and isinstance(elasticache_cluster['parameter_group_name'], dict):
+            elasticache_cluster['parameter_group_name']=elasticache_cluster['parameter_group_name']['__name__']
+
           elasticache_cluster.update({'tf_mod_version': tf_mod_version})
           # Check for existing instance in SC and update same ID if so.
           try:
@@ -203,7 +211,7 @@ def process_repo(component, lock, services):
               del pingdom_check['__tfmeta']
               data.update({'pingdom_check': [pingdom_check]})
 
-    services.log.debug(f'Namespace data: {data}')
+    services.log.debug(f'Namespace id:{namespace_id}, data: {data}')
     update_sc_namespace(namespace_id, data, services)
 
   return True
@@ -280,7 +288,8 @@ def main():
       raise SystemExit()
 
   sc_data = services.sc.get_all_records(services.sc.components_get)
-  process_components(sc_data, services)
+  if sc_data:
+    process_components(sc_data, services)
 
 
 if __name__ == '__main__':
