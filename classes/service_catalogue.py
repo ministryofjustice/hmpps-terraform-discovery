@@ -73,7 +73,7 @@ class ServiceCatalogue:
     )
     try:
       r = requests.get(f'{self.url}/v1/{table}', headers=self.api_headers, timeout=10)
-      if r.status_code == 200:
+      if r.status_code == 200 and r.json()['meta']['pagination']['total'] > 0:
         j_meta = r.json()['meta']['pagination']
         self.log.debug(f'Got result page: {j_meta["page"]} from Service Catalogue')
         json_data.extend(r.json()['data'])
