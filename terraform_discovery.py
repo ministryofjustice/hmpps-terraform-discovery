@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Github discovery - queries the github API for info about hmpps services and stores the results in the service catalogue"""
+"""Terraform discovery - parses the cloudplatform environments repo for namespace and terraform resources, and stores the results in the service catalogue"""
 
 import os
 import threading
