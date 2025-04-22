@@ -1,4 +1,4 @@
-name: Pipeline
+name: Pipeline [test -> build -> deploy]
 
 on:
   push:
@@ -17,6 +17,16 @@ on:
         default: false
         type: boolean
 
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+# This will cancel all running build/test/release pipelines that are not on the main branch
+# If this pipeline is on the main branch, it will wait until existing runs complete
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   helm_lint:
     strategy:
@@ -29,7 +39,7 @@ jobs:
       environment: ${{ matrix.environments }}
   build:
     name: Build docker image from hmpps-github-actions
-    if: github.ref == 'refs/heads/main'
+    #if: github.ref == 'refs/heads/main'
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2 # WORKFLOW_VERSION
     with:
       docker_registry: 'ghcr.io'
@@ -37,25 +47,28 @@ jobs:
       additional_docker_tag: ${{ inputs.additional_docker_tag }}
       push: ${{ inputs.push || true }}
       docker_multiplatform: false
-  
-  deploy_to_dev:
-    name: Deploy to dev
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
-    needs: build
-    with:
-      environment: dev
-      app_version: ${{ needs.build.outputs.version }}
-      helm_additional_args: "--set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{vars.SLACK_ALERT_CHANNEL}}'"
-    secrets: inherit
-
-  deploy_to_prod:
-    name: Deploy to prod
-    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
+# Can't pass in environment variables to a reusabble workflow
+# https://github.com/orgs/community/discussions/26671
+# so using individual repo variables
+  deploy_dev:
+    name: Deploy to the development environment
     needs:
       - build
-      - deploy_to_dev # wait for the deploy_to_dev job to complete
-    with:
-      environment: prod
-      app_version: ${{ needs.build.outputs.version }}
-      helm_additional_args: "--set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{vars.SLACK_ALERT_CHANNEL}}'"
+      - helm_lint
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
     secrets: inherit
+    with:
+      environment: 'dev'
+      app_version: '${{ needs.build.outputs.app_version }}'
+      helm_additional_args: "--set 'discoveryCronJob.env.SLACK_NOTIFY_CHANNEL=${{ vars.DEV_SLACK_NOTIFY_CHANNEL }}'  --set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{ vars.DEV_SLACK_ALERT_CHANNEL }}'"
+  deploy_prod:
+    name: Deploy to production environment
+    needs:
+      - build
+      - deploy_dev
+    uses: ministryofjustice/hmpps-github-actions/.github/workflows/deploy_env.yml@v2 # WORKFLOW_VERSION
+    secrets: inherit
+    with:
+      environment: 'prod'
+      app_version: '${{ needs.build.outputs.app_version }}'
+      helm_additional_args: "--set 'discoveryCronJob.env.SLACK_NOTIFY_CHANNEL=${{ vars.PROD_SLACK_NOTIFY_CHANNEL }}'  --set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{ vars.PROD_SLACK_ALERT_CHANNEL }}'"
