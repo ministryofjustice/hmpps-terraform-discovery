@@ -7,6 +7,7 @@ import logging
 import re
 from classes.service_catalogue import ServiceCatalogue
 from classes.slack import Slack
+import sys
 
 # import json
 from git import Repo
@@ -48,7 +49,9 @@ def process_repo(component, lock, services):
   global namespaces
   for environment in component['attributes']['environments']:
     namespace = environment.get('namespace', {})
-    services.log.debug(f'Processing environment/namepace: {environment["name"]}:{namespace}')
+    services.log.debug(
+      f'Processing environment/namepace: {environment["name"]}:{namespace}'
+    )
     if namespace not in namespaces:
       # Add namespace to list of namespaces being done.
       namespaces.append(namespace)
@@ -59,7 +62,9 @@ def process_repo(component, lock, services):
 
     namespace_id = None
     sc_namespace_attributes = {}
-    if sc_namespace_data := services.sc.get_record(services.sc.namespaces_get, 'name', namespace):
+    if sc_namespace_data := services.sc.get_record(
+      services.sc.namespaces_get, 'name', namespace
+    ):
       sc_namespace_attributes = sc_namespace_data.get('attributes', {})
       services.log.debug(f'Namespace data: {sc_namespace_data}')
       namespace_id = sc_namespace_data.get('id')
@@ -96,13 +101,17 @@ def process_repo(component, lock, services):
           rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
 
           # convert db_max_allocated_storage to string, as occasionally it is seen as a integer
-          if 'db_max_allocated_storage' in rds_instance and isinstance(rds_instance['db_max_allocated_storage'], int):
-            services.log.debug(f"Converting db_max_allocated_storage to string: {rds_instance['db_max_allocated_storage']}")
-            rds_instance['db_max_allocated_storage']=str(rds_instance['db_max_allocated_storage'])
+          if 'db_max_allocated_storage' in rds_instance and isinstance(
+            rds_instance['db_max_allocated_storage'], int
+          ):
+            services.log.debug(
+              f'Converting db_max_allocated_storage to string: {rds_instance["db_max_allocated_storage"]}'
+            )
+            rds_instance['db_max_allocated_storage'] = str(
+              rds_instance['db_max_allocated_storage']
+            )
 
-          rds_instance.update(
-            {'tf_line_start': rds_instance['__tfmeta']['line_start']}
-          )
+          rds_instance.update({'tf_line_start': rds_instance['__tfmeta']['line_start']})
           rds_instance.update({'tf_mod_version': tf_mod_version})
 
           # Check for existing instance in SC and update same ID if so.
@@ -147,8 +156,12 @@ def process_repo(component, lock, services):
           )
 
           # if parameter_group_name refers to another tf resource, get the name of the resource.
-          if 'parameter_group_name' in elasticache_cluster and isinstance(elasticache_cluster['parameter_group_name'], dict):
-            elasticache_cluster['parameter_group_name']=elasticache_cluster['parameter_group_name']['__name__']
+          if 'parameter_group_name' in elasticache_cluster and isinstance(
+            elasticache_cluster['parameter_group_name'], dict
+          ):
+            elasticache_cluster['parameter_group_name'] = elasticache_cluster[
+              'parameter_group_name'
+            ]['__name__']
 
           elasticache_cluster.update({'tf_mod_version': tf_mod_version})
           # Check for existing instance in SC and update same ID if so.
@@ -290,6 +303,9 @@ def main():
   sc_data = services.sc.get_all_records(services.sc.components_get)
   if sc_data:
     process_components(sc_data, services)
+
+  log.info('Completed Terraform discovery - exiting now')
+  sys.exit(0)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
-requests==2.31.0
+requests==2.32.3
 GitPython==3.1.44
-pyyaml==6.0.1
-tfparse==0.6.13
-slack_sdk==3.31.0
+pyyaml==6.0.2
+tfparse==0.6.15
+slack_sdk==3.35.0
