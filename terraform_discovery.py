@@ -8,6 +8,8 @@ import re
 from classes.service_catalogue import ServiceCatalogue
 from classes.slack import Slack
 import sys
+import utils.update_sc_scheduled_jobs as update_sc_scheduled_job
+import globals
 
 # import json
 from git import Repo
@@ -35,21 +37,21 @@ TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
 namespaces = []
 
 
-def update_sc_namespace(ns_id, data, services):
-  services.log.debug(f'Namespace data: {data}')
+def update_sc_namespace(ns_id, data):
+  globals.services.log.debug(f'Namespace data: {data}')
   if not ns_id:
-    services.log.debug(f'Adding new namespace to SC: {data}')
-    services.sc.add('namespaces', data)
+    globals.services.log.debug(f'Adding new namespace to SC: {data}')
+    globals.services.sc.add('namespaces', data)
   else:
-    services.log.debug(f'Updating namespace in SC: {data}')
-    services.sc.update('namespaces', ns_id, data)
+    globals.services.log.debug(f'Updating namespace in SC: {data}')
+    globals.services.sc.update('namespaces', ns_id, data)
 
 
-def process_repo(component, lock, services):
+def process_repo(component, lock):
   global namespaces
   for environment in component['attributes']['environments']:
     namespace = environment.get('namespace', {})
-    services.log.debug(
+    globals.services.log.debug(
       f'Processing environment/namepace: {environment["name"]}:{namespace}'
     )
     if namespace not in namespaces:
@@ -57,18 +59,18 @@ def process_repo(component, lock, services):
       namespaces.append(namespace)
     else:
       # Skip this namespace as it's already processed.
-      services.log.debug(f'skipping {namespace} namespace - already been processed')
+      globals.services.log.debug(f'skipping {namespace} namespace - already been processed')
       continue
 
     namespace_id = None
     sc_namespace_attributes = {}
-    if sc_namespace_data := services.sc.get_record(
-      services.sc.namespaces_get, 'name', namespace
+    if sc_namespace_data := globals.services.sc.get_record(
+      globals.services.sc.namespaces_get, 'name', namespace
     ):
       sc_namespace_attributes = sc_namespace_data.get('attributes', {})
-      services.log.debug(f'Namespace data: {sc_namespace_data}')
+      globals.services.log.debug(f'Namespace data: {sc_namespace_data}')
       namespace_id = sc_namespace_data.get('id')
-      services.log.debug(f'Namespace ID: {namespace_id}')
+      globals.services.log.debug(f'Namespace ID: {namespace_id}')
 
     data = {'name': namespace}
 
@@ -76,7 +78,7 @@ def process_repo(component, lock, services):
     if os.path.isdir(resources_dir):
       # tfparse is not thread-safe!
       with lock:
-        services.log.debug(f'Thread locked for tfparse: {resources_dir}')
+        globals.services.log.debug(f'Thread locked for tfparse: {resources_dir}')
         parsed = load_from_path(resources_dir)
         # log.debug(json.dumps(parsed, indent=2))
       # print(json.dumps(parsed, indent=2))
@@ -104,7 +106,7 @@ def process_repo(component, lock, services):
           if 'db_max_allocated_storage' in rds_instance and isinstance(
             rds_instance['db_max_allocated_storage'], int
           ):
-            services.log.debug(
+            globals.services.log.debug(
               f'Converting db_max_allocated_storage to string: {rds_instance["db_max_allocated_storage"]}'
             )
             rds_instance['db_max_allocated_storage'] = str(
@@ -224,38 +226,38 @@ def process_repo(component, lock, services):
               del pingdom_check['__tfmeta']
               data.update({'pingdom_check': [pingdom_check]})
 
-    services.log.debug(f'Namespace id:{namespace_id}, data: {data}')
-    update_sc_namespace(namespace_id, data, services)
+    globals.services.log.debug(f'Namespace id:{namespace_id}, data: {data}')
+    update_sc_namespace(namespace_id, data, globals.services)
 
   return True
 
 
-def process_components(components, services):
-  services.log.info(f'Processing batch of {len(components)} components...')
+def process_components(components):
+  globals.services.log.info(f'Processing batch of {len(components)} components...')
   lock = threading.Lock()
   component_count = 1
   for component in components:
     t_repo = threading.local()
     t_repo = threading.Thread(
-      target=process_repo, args=(component, lock, services), daemon=True
+      target=process_repo, args=(component, lock), daemon=True
     )
 
     # Apply limit on total active threads
     while threading.active_count() > (MAX_THREADS - 1):
-      services.log.debug(
+      globals.services.log.debug(
         f'Active Threads={threading.active_count()}, Max Threads={MAX_THREADS}'
       )
       sleep(10)
 
     t_repo.start()
     component_name = component['attributes']['name']
-    services.log.info(
+    globals.services.log.info(
       f'Started thread for {component_name} ({component_count}/{len(components)})'
     )
     component_count += 1
 
   t_repo.join()
-  services.log.info('Completed processing components')
+  globals.services.log.info('Completed processing components')
 
 
 def main():
@@ -277,7 +279,7 @@ def main():
     'filter': os.getenv('SC_FILTER', ''),
   }
 
-  services = Services(sc_params, slack_params, log)
+  globals.services = Services(sc_params, slack_params, log)
 
   if not os.path.isdir(TEMP_DIR):
     try:
@@ -285,9 +287,11 @@ def main():
         'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
       )
     except Exception as e:
-      services.slack.alert(
+      globals.services.slack.alert(
         f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
       )
+      globals.error_messages.append(f"Unable to clone cloud-platform-environments repo: {e}")
+      update_sc_scheduled_job.process_sc_scheduled_jobs('Failed')
       raise SystemExit()
   else:
     try:
@@ -295,16 +299,23 @@ def main():
       origin = cp_envs_repo.remotes.origin
       origin.pull()
     except Exception as e:
-      services.slack.alert(
+      globals.services.slack.alert(
         f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
       )
+      globals.error_messages.append(f"Unable to pull latest version of cloud-platform-environments repo: {e}")
+      update_sc_scheduled_job.process_sc_scheduled_jobs('Failed')
       raise SystemExit()
 
-  sc_data = services.sc.get_all_records(services.sc.components_get)
+  sc_data = globals.services.sc.get_all_records(globals.services.sc.components_get)
   if sc_data:
-    process_components(sc_data, services)
+    process_components(sc_data)
 
-  log.info('Completed Terraform discovery - exiting now')
+  if globals.error_messages:
+    update_sc_scheduled_job.process_sc_scheduled_jobs('Errors')
+    log.info("Terraform discovery job completed  with errors.")
+  else:
+    update_sc_scheduled_job.process_sc_scheduled_jobs('Succeeded')
+    log.info("Terraform discovery job completed successfully.")
   sys.exit(0)
 
 
