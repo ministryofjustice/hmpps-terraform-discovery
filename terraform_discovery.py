@@ -227,7 +227,7 @@ def process_repo(component, lock):
               data.update({'pingdom_check': [pingdom_check]})
 
     globals.services.log.debug(f'Namespace id:{namespace_id}, data: {data}')
-    update_sc_namespace(namespace_id, data, globals.services)
+    update_sc_namespace(namespace_id, data)
 
   return True
 
