@@ -22,7 +22,7 @@ COPY --chown=appuser:appgroup --from=builder /home/appuser/.local /home/appuser/
 COPY ./terraform_discovery.py .
 COPY ./classes ./classes
 COPY ./processes ./processes
-COPY globals.py . 
+COPY ./utilities ./utilities
 
 # update PATH environment variable
 ENV PATH=/home/appuser/.local:$PATH

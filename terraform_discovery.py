@@ -8,7 +8,7 @@ import re
 from classes.service_catalogue import ServiceCatalogue
 from classes.slack import Slack
 import processes.scheduled_jobs as sc_scheduled_job
-import globals
+from utilities.discovery import job
 
 # import json
 from git import Repo
@@ -282,6 +282,7 @@ def main():
     'filter': os.getenv('SC_FILTER', ''),
   }
 
+  job.name = 'hmpps-terraform-discovery'
   services = Services(sc_params, slack_params, log)
   sc = services.sc
   slack = services.slack
@@ -292,7 +293,8 @@ def main():
       )
     except Exception as e:
       slack.alert(f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}')
-      globals.error_messages.append(f'Unable to clone cloud-platform-environments repo: {e}')
+      job.error_messages.append(f'Unable to clone cloud-platform-environments repo: {e}')
+      sc_scheduled_job.update(services, 'Failed')
       raise SystemExit()
   else:
     try:
@@ -301,14 +303,15 @@ def main():
       origin.pull()
     except Exception as e:
       slack.alert(f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}')
-      globals.error_messages.append(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
+      job.error_messages.append(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
+      sc_scheduled_job.update(services, 'Failed')
       raise SystemExit()
 
   sc_data = sc.get_all_records(sc.components_get)
   if sc_data:
     process_components(sc_data, services)
 
-  if globals.error_messages:
+  if job.error_messages:
     sc_scheduled_job.update(services, 'Errors')
     log.info("Terraform discovery job completed  with errors.")
   else:
