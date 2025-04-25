@@ -294,6 +294,7 @@ def main():
     except Exception as e:
       slack.alert(f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}')
       job.error_messages.append(f'Unable to clone cloud-platform-environments repo: {e}')
+      sc_scheduled_job.update(services, 'Failed')
       raise SystemExit()
   else:
     try:
@@ -303,6 +304,7 @@ def main():
     except Exception as e:
       slack.alert(f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}')
       job.error_messages.append(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
+      sc_scheduled_job.update(services, 'Failed')
       raise SystemExit()
 
   sc_data = sc.get_all_records(sc.components_get)
