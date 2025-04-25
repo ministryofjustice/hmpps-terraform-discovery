@@ -8,7 +8,7 @@ log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
 def update(services, status):
   sc = services.sc
   log = services.log
-  sc_scheduled_jobs_data = sc.get_all_records(sc.scheduled_jobs_get)
+  sc_scheduled_jobs_data = sc.get_record( 'scheduled-jobs', 'name', job.name)
   job_data = {
     "last_scheduled_run": datetime.now().isoformat(),
     "result": status,
@@ -18,7 +18,7 @@ def update(services, status):
     job_data["last_successful_run"] = datetime.now().isoformat()
 
   try:
-    job_id = sc_scheduled_jobs_data[0]['id']
+    job_id = sc_scheduled_jobs_data['id']
     sc.update('scheduled-jobs', job_id, job_data)
     return True
   except Exception as e:
