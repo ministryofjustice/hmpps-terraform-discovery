@@ -1,7 +1,7 @@
 import requests
 import logging
 import json
-
+from utilities.discovery import job
 
 class ServiceCatalogue:
   def __init__(self, params, log_level=logging.INFO):
@@ -43,7 +43,7 @@ class ServiceCatalogue:
       f'{self.environments}?populate[0]=component{pagination_page_size}{sort_filter}'
     )
     self.namespaces_get = 'namespaces?populate=*'
-    self.scheduled_jobs_get = f'scheduled-jobs?filters[name][$eq]=hmpps-terraform-discovery'
+    self.scheduled_jobs_get = f'scheduled-jobs?filters[name][$eq]={job.name}'
     self.connection_ok = self.test_connection()
 
   """
