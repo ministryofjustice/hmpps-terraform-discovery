@@ -291,9 +291,8 @@ def main():
         'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
       )
     except Exception as e:
-      slack.alert(
-        f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
-      )
+      slack.alert(f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}')
+      globals.error_messages.append(f'Unable to clone cloud-platform-environments repo: {e}')
       raise SystemExit()
   else:
     try:
@@ -301,9 +300,8 @@ def main():
       origin = cp_envs_repo.remotes.origin
       origin.pull()
     except Exception as e:
-      slack.alert(
-        f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
-      )
+      slack.alert(f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}')
+      globals.error_messages.append(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
       raise SystemExit()
 
   sc_data = sc.get_all_records(sc.components_get)
