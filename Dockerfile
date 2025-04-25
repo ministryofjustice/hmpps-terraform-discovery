@@ -21,6 +21,8 @@ RUN addgroup --gid 2000 --system appgroup && \
 COPY --chown=appuser:appgroup --from=builder /home/appuser/.local /home/appuser/.local
 COPY ./terraform_discovery.py .
 COPY ./classes ./classes
+COPY ./processes ./processes
+COPY globals.py . 
 
 # update PATH environment variable
 ENV PATH=/home/appuser/.local:$PATH
