@@ -1,4 +1,5 @@
-FROM python:3.10 AS builder
+FROM  python:3.13-slim AS builder
+
 COPY requirements.txt .
 
 RUN addgroup --gid 2000 --system appgroup && \
@@ -9,7 +10,7 @@ USER 2000
 # install dependencies to the local user directory
 RUN pip install --user -r requirements.txt
 
-FROM python:3.10-slim
+FROM python:3.13-slim
 WORKDIR /app
 
 RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
