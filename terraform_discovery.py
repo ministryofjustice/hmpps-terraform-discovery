@@ -132,16 +132,16 @@ def process_repo(component, lock, services):
                 filter(
                   lambda template: template['tf_path']
                   == terraform_template['__tfmeta']['path'],
-                  sc_namespace_attributes.get('terraform_template', {}),
+                  sc_namespace_attributes.get('hmpps_terraform', {}),
                 )
               )[0]['id']
               terraform_template.update({'id': template_id})
           except (IndexError, KeyError):
             pass
-          if 'terraform_template' in data:
-            data['terraform_template'].append(terraform_template)
+          if 'hmpps_template' in data:
+            data['hmpps_template'].append(terraform_template)
           else:
-            data['terraform_template'] = []
+            data['hmpps_template'] = []
           log.debug(f'Namespace {namespace} uses cloud-platform-terraform-hmpps-template in app')
         else:
           log.debug(f'Namespace {namespace} does not use cloud-platform-terraform-hmpps-template in app')
@@ -188,10 +188,7 @@ def process_repo(component, lock, services):
 
           # Clean up field not used in post to SC
           del rds_instance['__tfmeta']
-          if 'rds_instance' in data:
-            data['rds_instance'].append(rds_instance)
-          else:
-            data['rds_instance'] = []
+          data.update({'rds_instance': [rds_instance]})
 
         # Look for elasticache instances.
         if 'cloud-platform-terraform-elasticache-cluster' in m['source']:
@@ -242,10 +239,7 @@ def process_repo(component, lock, services):
 
           # Clean up field not used in post to SC
           del elasticache_cluster['__tfmeta']
-          if 'elasticache_cluster' in data:
-            data['elasticache_cluster'].append(elasticache_cluster)
-          else:
-            data['elasticache_cluster'] = []
+          data.update({'elasticache_cluster': [elasticache_cluster]})
 
         if 'pingdom_check' in parsed.keys():
           for r in parsed['pingdom_check']:
@@ -285,10 +279,7 @@ def process_repo(component, lock, services):
 
               # Clean up field not used in post to SC
               del pingdom_check['__tfmeta']
-              if 'pingdom_check' in data:
-                data['pingdom_check'].append(pingdom_check)
-              else:
-                data['pingdom_check'] = []
+              data.update({'pingdom_check': [pingdom_check]})
 
     log.debug(f'Namespace data to update: {data}')
     
