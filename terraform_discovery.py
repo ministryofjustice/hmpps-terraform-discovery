@@ -83,15 +83,24 @@ def process_repo(component, lock, services):
         log.debug(f'Thread locked for tfparse: {resources_dir}')
         parsed = load_from_path(resources_dir)
         # log.debug(json.dumps(parsed, indent=2))
-      # print(json.dumps(parsed, indent=2))
+
       for m in parsed['module']:
         # Get terraform module version
+        log.info(f'Processing module: {m}')
         tf_mod_version = str()
         try:
           regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$'
           tf_mod_version = re.search(regex, m['source'])[0]
         except TypeError:
           pass
+        
+        # Check if the namespace uses the cloud-platform-terraform-hmpps-template
+        if 'cloud-platform-terraform-hmpps-template' in m['source']:
+          data.update({'terraform_template_used': True})
+          log.debug(f'Namespace {namespace} uses cloud-platform-terraform-hmpps-template')
+        else:
+          data.update({'terraform_template_used': False})
+          log.debug(f'Namespace {namespace} does not use cloud-platform-terraform-hmpps-template')
 
         # Look for RDS instances.
         if 'cloud-platform-terraform-rds-instance' in m['source']:
@@ -227,7 +236,8 @@ def process_repo(component, lock, services):
               # Clean up field not used in post to SC
               del pingdom_check['__tfmeta']
               data.update({'pingdom_check': [pingdom_check]})
-
+    log.debug(f'Namespace data to update: {data}')
+    
     log.debug(f'Namespace id:{namespace_id}, data: {data}')
     update_sc_namespace(namespace_id, data, services)
 
