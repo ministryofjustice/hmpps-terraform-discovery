@@ -5,6 +5,7 @@ import os
 import threading
 import logging
 import re
+import yaml
 from classes.service_catalogue import ServiceCatalogue
 from classes.slack import Slack
 import processes.scheduled_jobs as sc_scheduled_job
@@ -76,7 +77,24 @@ def process_repo(component, lock, services):
 
     data = {'name': namespace}
 
+    rbac_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}'  
     resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
+
+    if os.path.isdir(rbac_dir):
+      # Process RBAC 
+      for file_name in os.listdir(rbac_dir):
+        if file_name.endswith('rbac.yaml') or file_name.endswith('rbac.yml'):
+          log.debug(f'Processing RBAC file: {file_name}')
+          with open(os.path.join(rbac_dir, file_name), 'r') as f:
+            try:
+              rbac_data = yaml.safe_load(f)
+              if rbac_data and 'subjects' in rbac_data:
+                rbac_teams = [subject.get('name').replace('github:','') for subject in rbac_data['subjects'] if subject.get('kind') == 'Group']
+                data.update({'rbac_teams': rbac_teams})
+              log.debug(f'RBAC github teams found in {rbac_dir}/{file_name}: {rbac_teams}')
+            except yaml.YAMLError as e:
+              log.error(f'Error parsing YAML file {rbac_dir}/{file_name}: {e}')
+
     if os.path.isdir(resources_dir):
       # tfparse is not thread-safe!
       with lock:
