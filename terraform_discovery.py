@@ -141,9 +141,6 @@ def process_repo(component, lock, services):
             data['hmpps_template'].append(terraform_template)
           else:
             data['hmpps_template'] = []
-          log.debug(f'Namespace {namespace} uses cloud-platform-terraform-hmpps-template in app')
-        else:
-          log.debug(f'Namespace {namespace} does not use cloud-platform-terraform-hmpps-template in app')
 
         # Look for RDS instances.
         if 'cloud-platform-terraform-rds-instance' in m['source']:
