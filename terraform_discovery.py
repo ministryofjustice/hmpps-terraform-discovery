@@ -280,8 +280,6 @@ def process_repo(component, lock, services):
               del pingdom_check['__tfmeta']
               data.update({'pingdom_check': [pingdom_check]})
 
-    log.debug(f'Namespace data to update: {data}')
-    
     log.debug(f'Namespace id:{namespace_id}, data: {data}')
     update_sc_namespace(namespace_id, data, services)
 
