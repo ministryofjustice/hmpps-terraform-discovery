@@ -3,12 +3,11 @@
 
 import os
 import threading
-import logging
 import re
 from classes.service_catalogue import ServiceCatalogue
 from classes.slack import Slack
 import processes.scheduled_jobs as sc_scheduled_job
-from utilities.discovery import job
+from utilities.job_log_handling import log_debug, log_error, log_info, log_critical, log_warning, job
 
 # import json
 from git import Repo
@@ -16,10 +15,9 @@ from tfparse import load_from_path
 from time import sleep
 
 class Services:
-  def __init__(self, sc_params, slack_params, log):
-    self.slack = Slack(slack_params, log)
-    self.sc = ServiceCatalogue(sc_params, log)
-    self.log = log
+  def __init__(self, sc_params, slack_params):
+    self.slack = Slack(slack_params)
+    self.sc = ServiceCatalogue(sc_params)
 
     if not self.sc.connection_ok:
       self.slack.alert(
@@ -36,25 +34,24 @@ namespaces = []
 
 
 def update_sc_namespace(ns_id, data, services):
-  log = services.log
   sc = services.sc
-  log.debug(f'Namespace data: {data}')
+  log_debug(f'Namespace data: {data}')
   if not ns_id:
-    log.debug(f'Adding new namespace to SC: {data}')
+    log_debug(f'Adding new namespace to SC: {data}')
     sc.add('namespaces', data)
   else:
-    log.debug(f'Updating namespace in SC: {data}')
+    log_debug(f'Updating namespace in SC: {data}')
     sc.update('namespaces', ns_id, data)
 
 
 def process_repo(component, lock, services):
   global namespaces
   sc = services.sc
-  log = services.log
+
   for envs in component['attributes']['envs']['data']:
     environment = envs['attributes']
     namespace = environment.get('namespace', {})
-    log.debug(
+    log_debug(
       f'Processing environment/namepace: {environment["name"]}:{namespace}'
     )
     if namespace not in namespaces:
@@ -62,7 +59,7 @@ def process_repo(component, lock, services):
       namespaces.append(namespace)
     else:
       # Skip this namespace as it's already processed.
-      log.debug(f'skipping {namespace} namespace - already been processed')
+      log_debug(f'skipping {namespace} namespace - already been processed')
       continue
 
     namespace_id = None
@@ -71,9 +68,9 @@ def process_repo(component, lock, services):
       sc.namespaces_get, 'name', namespace
     ):
       sc_namespace_attributes = sc_namespace_data.get('attributes', {})
-      log.debug(f'Namespace data: {sc_namespace_data}')
+      log_debug(f'Namespace data: {sc_namespace_data}')
       namespace_id = sc_namespace_data.get('id')
-      log.debug(f'Namespace ID: {namespace_id}')
+      log_debug(f'Namespace ID: {namespace_id}')
 
     data = {'name': namespace}
 
@@ -82,7 +79,7 @@ def process_repo(component, lock, services):
     if os.path.isdir(resources_dir):
       # tfparse is not thread-safe!
       with lock:
-        log.debug(f'Thread locked for tfparse: {resources_dir}')
+        log_debug(f'Thread locked for tfparse: {resources_dir}')
         parsed = load_from_path(resources_dir)
 
       for m in parsed['module']:
@@ -159,7 +156,7 @@ def process_repo(component, lock, services):
           if 'db_max_allocated_storage' in rds_instance and isinstance(
             rds_instance['db_max_allocated_storage'], int
           ):
-            log.debug(
+            log_debug(
               f'Converting db_max_allocated_storage to string: {rds_instance["db_max_allocated_storage"]}'
             )
             rds_instance['db_max_allocated_storage'] = str(
@@ -279,15 +276,14 @@ def process_repo(component, lock, services):
               del pingdom_check['__tfmeta']
               data.update({'pingdom_check': [pingdom_check]})
 
-    log.debug(f'Namespace id:{namespace_id}, data: {data}')
+    log_debug(f'Namespace id:{namespace_id}, data: {data}')
     update_sc_namespace(namespace_id, data, services)
 
   return True
 
 
 def process_components(components, services):
-  log = services.log
-  log.info(f'Processing batch of {len(components)} components...')
+  log_info(f'Processing batch of {len(components)} components...')
   lock = threading.Lock()
   component_count = 1
   for component in components:
@@ -298,28 +294,23 @@ def process_components(components, services):
 
     # Apply limit on total active threads
     while threading.active_count() > (MAX_THREADS - 1):
-      log.debug(
+      log_debug(
         f'Active Threads={threading.active_count()}, Max Threads={MAX_THREADS}'
       )
       sleep(10)
 
     t_repo.start()
     component_name = component['attributes']['name']
-    log.info(
+    log_info(
       f'Started thread for {component_name} ({component_count}/{len(components)})'
     )
     component_count += 1
 
   t_repo.join()
-  log.info('Completed processing components')
+  log_info('Completed processing components')
 
 
 def main():
-  logging.basicConfig(
-    format='[%(asctime)s] %(levelname)s %(threadName)s %(message)s', level=LOG_LEVEL
-  )
-  log = logging.getLogger(__name__)
-
   slack_params = {
     'token': os.getenv('SLACK_BOT_TOKEN'),
     'notify_channel': os.getenv('SLACK_NOTIFY_CHANNEL', ''),
@@ -334,7 +325,7 @@ def main():
   }
 
   job.name = 'hmpps-terraform-discovery'
-  services = Services(sc_params, slack_params, log)
+  services = Services(sc_params, slack_params)
   sc = services.sc
   slack = services.slack
   if not os.path.isdir(TEMP_DIR):
@@ -344,7 +335,7 @@ def main():
       )
     except Exception as e:
       slack.alert(f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}')
-      job.error_messages.append(f'Unable to clone cloud-platform-environments repo: {e}')
+      log_error(f'Unable to clone cloud-platform-environments repo: {e}')
       sc_scheduled_job.update(services, 'Failed')
       raise SystemExit()
   else:
@@ -354,7 +345,7 @@ def main():
       origin.pull()
     except Exception as e:
       slack.alert(f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}')
-      job.error_messages.append(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
+      log_error(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
       sc_scheduled_job.update(services, 'Failed')
       raise SystemExit()
 
@@ -364,10 +355,10 @@ def main():
 
   if job.error_messages:
     sc_scheduled_job.update(services, 'Errors')
-    log.info("Terraform discovery job completed  with errors.")
+    log_info("Terraform discovery job completed  with errors.")
   else:
     sc_scheduled_job.update(services, 'Succeeded')
-    log.info("Terraform discovery job completed successfully.")
+    log_info("Terraform discovery job completed successfully.")
 
 
 if __name__ == '__main__':
