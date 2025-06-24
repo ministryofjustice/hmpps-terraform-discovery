@@ -51,7 +51,8 @@ def process_repo(component, lock, services):
   global namespaces
   sc = services.sc
   log = services.log
-  for environment in component['attributes']['environments']:
+  for envs in component['attributes']['envs']['data']:
+    environment = envs['attributes']
     namespace = environment.get('namespace', {})
     log.debug(
       f'Processing environment/namepace: {environment["name"]}:{namespace}'
