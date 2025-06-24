@@ -32,7 +32,7 @@ class ServiceCatalogue:
       'Accept': 'application/json',
     }
     self.components = 'components'
-    self.components_get = f'{self.components}?populate[0]=latest_commit&populate[1]=environments&populate[2]=product&populate[3]=envs{self.filter}{pagination_page_size}{sort_filter}'
+    self.components_get = f'{self.components}?populate[0]=latest_commit&populate[1]=envs&populate[2]=product{self.filter}{pagination_page_size}{sort_filter}'
 
     self.products = 'products'
     self.products_get = f'{self.products}?populate[0]=parent&populate[1]=children&populate[2]=product_set&populate[3]=service_area&populate[4]=team{self.product_filter}{pagination_page_size}{sort_filter}'
