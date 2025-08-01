@@ -27,15 +27,15 @@ class ServiceCatalogue:
       'Accept': 'application/json',
     }
     self.components = 'components'
-    self.components_get = f'{self.components}?populate[0]=latest_commit&populate[1]=envs&populate[2]=product{self.filter}{pagination_page_size}{sort_filter}'
+    self.components_get = f'{self.components}?populate[product]=true&populate[latest_commit]=true&populate[envs]=true{self.filter}{pagination_page_size}{sort_filter}'
 
     self.products = 'products'
-    self.products_get = f'{self.products}?populate[0]=parent&populate[1]=children&populate[2]=product_set&populate[3]=service_area&populate[4]=team{self.product_filter}{pagination_page_size}{sort_filter}'
+    self.products_get = f'{self.products}?populate[parent]=true&populate[children]=true&populate[product_set]=true&populate[service_area]=true&populate[team]=true{self.product_filter}{pagination_page_size}{sort_filter}'
 
     self.github_teams = 'github-teams'
     self.environments = 'environments'
     self.environments_get = (
-      f'{self.environments}?populate[0]=component{pagination_page_size}{sort_filter}'
+      f'{self.environments}?populate[component]=true{pagination_page_size}{sort_filter}'
     )
     self.namespaces_get = 'namespaces?populate=*'
     self.scheduled_jobs = 'scheduled-jobs'
@@ -137,6 +137,7 @@ class ServiceCatalogue:
   def update(self, table, element_id, data):
     success = False
     try:
+      log_debug(f'URL for update: {self.url}/v1/{table}/{element_id}')
       log_debug(f'data to be uploaded: {json.dumps(data, indent=2)}')
       x = requests.put(
         f'{self.url}/v1/{table}/{element_id}',
@@ -150,7 +151,7 @@ class ServiceCatalogue:
         )
         success = True
       else:
-        log_info(
+        log_error(
           f'Received non-200 response from service catalogue for record id {element_id} in {table.split("/")[-1]}: {x.status_code} {x.content}'
         )
     except Exception as e:
@@ -169,7 +170,7 @@ class ServiceCatalogue:
         json={'data': data},
         timeout=10,
       )
-      if x.status_code == 200:
+      if x.status_code == 201:
         log_info(
           f'Successfully added {(data["team_name"] if "team_name" in data else data["name"])} to {table.split("/")[-1]}: {x.status_code}'
         )
@@ -193,7 +194,7 @@ class ServiceCatalogue:
         timeout=10,
       )
       if r.status_code == 200 and r.json()['data']:
-        sc_id = r.json()['data'][0]['id']
+        sc_id = r.json()['data'][0]['documentId']
         log_debug(
           f'Successfully found Service Catalogue ID for {match_field}={match_string} in {match_table}: {sc_id}'
         )
@@ -210,15 +211,15 @@ class ServiceCatalogue:
 
   def get_component_env_id(self, component, env):
     env_id = None
-    for env_data in component['attributes'].get('environments'):
+    for env_data in component.get('envs'):
       if env_data['name'] == env:
-        env_id = env_data['id']
+        env_id = env_data['documentId']
         log_debug(
-          f'Found existing environment ID for {env} in component {component["attributes"]["name"]}: {env_id}'
+          f'Found existing environment ID for {env} in component {component.get('name')}: {env_id}'
         )
     if not env_id:
       log_debug(
-        f'No existing environment ID found for {env} in component {component["attributes"]["name"]}'
+        f'No existing environment ID found for {env} in component {component.get('name')}'
       )
     return env_id
 
@@ -226,8 +227,7 @@ class ServiceCatalogue:
     components = self.get_all_records(self.components_get)
     combined_teams = set()
     for component in components:
-      attributes = component.get('attributes', {})
-      combined_teams.update(attributes.get('github_project_teams_write', []) or [])
-      combined_teams.update(attributes.get('github_project_teams_admin', []) or [])
-      combined_teams.update(attributes.get('github_project_teams_maintain', []) or [])
+      combined_teams.update(component.get('github_project_teams_write', []) or [])
+      combined_teams.update(component.get('github_project_teams_admin', []) or [])
+      combined_teams.update(component.get('github_project_teams_maintain', []) or [])
     return combined_teams
