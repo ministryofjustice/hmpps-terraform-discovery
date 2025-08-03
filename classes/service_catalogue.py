@@ -125,8 +125,8 @@ class ServiceCatalogue:
         )
 
     except Exception as e:
-      log_error(
-        f'Problem with Service Catalogue API while reading all records from {table}. {e}'
+      log_info(
+        f'Parameter {parameter} does not exist in {table}. {e}'
       )
     return json_data
 
