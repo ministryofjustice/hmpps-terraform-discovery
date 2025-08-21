@@ -93,28 +93,16 @@ def process_repo(component, lock, services):
         if 'cloud-platform-terraform-hmpps-template' in m['source']:
           h_sc_fields = hmpps_template_fields = ["tf_label", "tf_line_start", "tf_line_end", "tf_path", "tf_filename", "application", "application_insights_instance", "environment_name", "github_repo", "github_team_name",
             "namespace", "reviewer_teams", "selected_branch_patterns", "source_template_repo", "protected_branches_only", "is_production", "tf_mod_version", "prevent_self_review"]
-          hmpps_template = m
           # Process fields
-          hmpps_template.update({'tf_label': hmpps_template['__tfmeta']['label']})
-          hmpps_template.update({'tf_line_start': hmpps_template['__tfmeta']['line_start']})
-          hmpps_template.update({'tf_line_end': hmpps_template['__tfmeta']['line_end']})
-          hmpps_template.update({'tf_path': hmpps_template['__tfmeta']['path']})
-          hmpps_template.update({'tf_filename': hmpps_template['__tfmeta']['filename']})
-          hmpps_template.update({'tf_mod_version': tf_mod_version})
-          hmpps_template.update({'application': hmpps_template['application']})
-          hmpps_template.update({'application_insights_instance': hmpps_template['application_insights_instance'] if 'application_insights_instance' in hmpps_template else None})
-          hmpps_template.update({'environment_name': hmpps_template['environment']})
-          hmpps_template.update({'github_repo': hmpps_template['github_repo']})
-          hmpps_template.update({'github_team_name': hmpps_template['github_team'] if 'github_team' in hmpps_template else None})
-          hmpps_template.update({'is_production': hmpps_template['is_production'] })
-          hmpps_template.update({'namespace': namespace if 'namespace' in locals() else None})
-          hmpps_template.update({'reviewer_teams': hmpps_template['reviewer_teams'] if 'reviewer_teams' in hmpps_template and hmpps_template['reviewer_teams'] else []})
-          hmpps_template.update({'selected_branch_patterns': hmpps_template['selected_branch_patterns'] if 'selected_branch_patterns' in hmpps_template else []})
-          hmpps_template.update({'source_template_repo': hmpps_template['source_template_repo'] if 'source_template_repo' in hmpps_template else None})
-          hmpps_template.update({'protected_branches_only': hmpps_template['protected_branches_only'] if 'protected_branches_only' in hmpps_template else None})
-          hmpps_template.update({'prevent_self_review': hmpps_template['prevent_self_review'] if 'prevent_self_review' in hmpps_template else None})
-          hmpps_template = {key: value for key, value in hmpps_template.items() if key in h_sc_fields}
-          # Clean up field not used in post to SC
+          hmpps_template = {
+            key: (
+              m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
+              else m.get(key, [] if key in ["reviewer_teams", "selected_branch_patterns"] else None)
+            )
+            for key in h_sc_fields
+          }
+          hmpps_template["namespace"] = locals().get("namespace")
+          hmpps_template["tf_mod_version"] = tf_mod_version
           if 'hmpps_template' in data:
             data['hmpps_template'].append(hmpps_template)
           else:
@@ -131,27 +119,14 @@ def process_repo(component, lock, services):
               "allow_major_version_upgrade", "allow_minor_version_upgrade", "deletion_protection", 
               "maintenance_window", "backup_window", "db_parameter"
           ]
-          # Process fields
-          rds_instance.update({'tf_label': rds_instance['__tfmeta']['label']})
-          rds_instance.update({'tf_filename': rds_instance['__tfmeta']['filename']})
-          rds_instance.update({'tf_path': rds_instance['__tfmeta']['path']})
-          rds_instance.update({'tf_line_end': rds_instance['__tfmeta']['line_end']})
-
-          # convert db_max_allocated_storage to string, as occasionally it is seen as a integer
-          if 'db_max_allocated_storage' in rds_instance and isinstance(
-            rds_instance['db_max_allocated_storage'], int
-          ):
-            log_debug(
-              f'Converting db_max_allocated_storage to string: {rds_instance["db_max_allocated_storage"]}'
+          rds_instance = {
+            key: (
+              m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
+              else str(m[key]) if key == "db_max_allocated_storage" and isinstance(m.get(key), int)
+              else m.get(key)
             )
-            rds_instance['db_max_allocated_storage'] = str(
-              rds_instance['db_max_allocated_storage']
-            )
-
-          rds_instance.update({'tf_line_start': rds_instance['__tfmeta']['line_start']})
-          rds_instance.update({'tf_mod_version': tf_mod_version})
-
-          rds_instance = {key: value for key, value in rds_instance.items() if key in rd_sc_fields}
+            for key in rd_sc_fields
+          }
           data.update({'rds_instance': [rds_instance]})
 
         # Look for elasticache instances.
@@ -160,36 +135,15 @@ def process_repo(component, lock, services):
             "parameter_group_name","team_name","tf_label","tf_filename","tf_path","tf_line_end","tf_line_start","tf_mod_version"]
           elasticache_cluster = m
           # Process fields
-          elasticache_cluster.update(
-            {'tf_label': elasticache_cluster['__tfmeta']['label']}
-          )
-          elasticache_cluster.update(
-            {'tf_filename': elasticache_cluster['__tfmeta']['filename']}
-          )
-          elasticache_cluster.update(
-            {'tf_path': elasticache_cluster['__tfmeta']['path']}
-          )
-          elasticache_cluster.update(
-            {'tf_line_end': elasticache_cluster['__tfmeta']['line_end']}
-          )
-          elasticache_cluster.update(
-            {'tf_line_start': elasticache_cluster['__tfmeta']['line_start']}
-          )
-
-          # if parameter_group_name refers to another tf resource, get the name of the resource.
-          if 'parameter_group_name' in elasticache_cluster and isinstance(
-            elasticache_cluster['parameter_group_name'], dict
-          ):
-            elasticache_cluster['parameter_group_name'] = elasticache_cluster[
-              'parameter_group_name'
-            ]['__name__']
-
-          elasticache_cluster.update({'tf_mod_version': tf_mod_version})
-          elasticache_cluster.pop('auth_token_rotated_date', None)
-          elasticache_cluster.pop('providers', None)
-          elasticache_cluster.pop('source', None)
-          elasticache_cluster.pop('vpc_name', None)
-          elasticache_cluster = {key: value for key, value in elasticache_cluster.items() if key in ec_sc_fields}
+          elasticache_cluster = {
+            key: (
+              m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
+              else m["parameter_group_name"]["__name__"] if key == "parameter_group_name" and isinstance(m.get("parameter_group_name"), dict)
+              else tf_mod_version if key == "tf_mod_version"
+              else m.get(key)
+            )
+            for key in ec_sc_fields
+          }
           data.update({'elasticache_cluster': [elasticache_cluster]})
 
         if 'pingdom_check' in parsed.keys():
@@ -198,20 +152,13 @@ def process_repo(component, lock, services):
           for r in parsed['pingdom_check']:
             # Look for pingdom checks.
             if 'http' in r['type'] and '__tfmeta' in r.keys():
-              pingdom_check = r
-              # Process fields
-              pingdom_check.update({'tf_label': pingdom_check['__tfmeta']['label']})
-              pingdom_check.update(
-                {'tf_filename': pingdom_check['__tfmeta']['filename']}
-              )
-              pingdom_check.update({'tf_path': pingdom_check['__tfmeta']['path']})
-              pingdom_check.update(
-                {'tf_line_end': pingdom_check['__tfmeta']['line_end']}
-              )
-              pingdom_check.update(
-                {'tf_line_start': pingdom_check['__tfmeta']['line_start']}
-              )
-              pingdom_check = {key: value for key, value in pingdom_check.items() if key in p_sc_fields}
+              pingdom_check = {
+                key: (
+                  r["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in r["__tfmeta"]
+                   else r.get(key)
+                )
+                for key in p_sc_fields
+              }
               data.update({'pingdom_check': [pingdom_check]})
 
     log_debug(f'Namespace id:{namespace_id}, data: {data}')
