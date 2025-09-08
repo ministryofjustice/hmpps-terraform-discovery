@@ -13,7 +13,7 @@ def update(services, status):
     job_data["last_successful_run"] = datetime.now().isoformat()
 
   try:
-    job_id = sc_scheduled_jobs_data['id']
+    job_id = sc_scheduled_jobs_data.get('documentId')
     sc.update('scheduled-jobs', job_id, job_data)
     return True
   except Exception as e:
