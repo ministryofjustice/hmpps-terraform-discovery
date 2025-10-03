@@ -47,7 +47,6 @@ def update_sc_namespace(ns_id, data, services):
 def process_repo(component, lock, services):
   global namespaces
   sc = services.sc
-
   for environment in component.get('envs'):
     namespace = environment.get('namespace', {})
     log_debug(
@@ -69,7 +68,7 @@ def process_repo(component, lock, services):
       namespace_id = sc_namespace_data.get('documentId')
       log_debug(f'Namespace ID: {namespace_id}')
 
-    data = {'name': namespace}
+    data = {'name': namespace, 'rds_instance': [], 'elasticache_cluster': [], 'hmpps_template': [], 'pingdom_check': []}
 
     resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
 
@@ -78,10 +77,8 @@ def process_repo(component, lock, services):
       with lock:
         log_debug(f'Thread locked for tfparse: {resources_dir}')
         parsed = load_from_path(resources_dir)
-
       for m in parsed['module']:
         # Get terraform module version
-
         tf_mod_version = str()
         try:
           regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$'
@@ -105,8 +102,6 @@ def process_repo(component, lock, services):
           hmpps_template["tf_mod_version"] = tf_mod_version
           if 'hmpps_template' in data:
             data['hmpps_template'].append(hmpps_template)
-          else:
-            data['hmpps_template'] = []
 
         # Look for RDS instances.
         if 'cloud-platform-terraform-rds-instance' in m['source']:
@@ -123,11 +118,12 @@ def process_repo(component, lock, services):
             key: (
               m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
               else str(m[key]) if key == "db_max_allocated_storage" and isinstance(m.get(key), int)
+              else tf_mod_version if key == "tf_mod_version"
               else m.get(key)
             )
             for key in rd_sc_fields
           }
-          data.update({'rds_instance': [rds_instance]})
+          data["rds_instance"].append(rds_instance)
 
         # Look for elasticache instances.
         if 'cloud-platform-terraform-elasticache-cluster' in m['source']:
@@ -144,22 +140,26 @@ def process_repo(component, lock, services):
             )
             for key in ec_sc_fields
           }
-          data.update({'elasticache_cluster': [elasticache_cluster]})
+          data['elasticache_cluster'].append(elasticache_cluster)
+      
+      if 'pingdom_check' in parsed.keys():
+        p_sc_fields = [
+          "tf_label", "tf_filename", "tf_path", "tf_line_start", "tf_line_end", "type", "name",
+          "host", "url", "probefilters", "encryption", "resolution", "notifywhenbackup",
+          "sendnotificationwhendown", "notifyagainevery", "port", "integrationids"
+        ]
 
-        if 'pingdom_check' in parsed.keys():
-          p_sc_fields = [ "tf_label","tf_filename","tf_path","tf_line_start","tf_line_end","type","name", "host", "url","probefilters","encryption",
-              "resolution", "notifywhenbackup","sendnotificationwhendown","notifyagainevery","port","integrationids"]
-          for r in parsed['pingdom_check']:
-            # Look for pingdom checks.
-            if 'http' in r['type'] and '__tfmeta' in r.keys():
-              pingdom_check = {
-                key: (
-                  r["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in r["__tfmeta"]
-                   else r.get(key)
-                )
-                for key in p_sc_fields
-              }
-              data.update({'pingdom_check': [pingdom_check]})
+        for r in parsed['pingdom_check']:
+          if 'http' in r['type'] and '__tfmeta' in r.keys():
+            pingdom_check = {
+              key: (
+                r["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in r["__tfmeta"]
+                else r.get(key)
+              )
+              for key in p_sc_fields
+            }
+            # Append the processed entry to the list
+            data['pingdom_check'].append(pingdom_check)
 
     log_debug(f'Namespace id:{namespace_id}, data: {data}')
     update_sc_namespace(namespace_id, data, services)
