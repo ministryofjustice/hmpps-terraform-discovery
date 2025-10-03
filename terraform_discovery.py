@@ -68,11 +68,7 @@ def process_repo(component, lock, services):
       namespace_id = sc_namespace_data.get('documentId')
       log_debug(f'Namespace ID: {namespace_id}')
 
-    data = {'name': namespace}
-    data['rds_instance'] = []
-    data['elasticache_cluster'] = []
-    data['hmpps_template'] = []
-    data['pingdom_check'] = []
+    data = {'name': namespace, 'rds_instance': [], 'elasticache_cluster': [], 'hmpps_template': [], 'pingdom_check': []}
 
     resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
 
