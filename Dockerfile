@@ -1,8 +1,10 @@
 FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 WORKDIR /app
 
-RUN addgroup -g 2000 appgroup && \
-    adduser -u 2000 -G appgroup -h /home/appuser -D appuser
+RUN addgroup --gid 2000 --system appgroup && \
+    adduser --uid 2000 --system appuser --gid 2000 --home /home/appuser
+
+USER 2000
 
 # initialise uv
 COPY pyproject.toml .
