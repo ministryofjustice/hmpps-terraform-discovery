@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.13-alpine
+FROM ghcr.io/astral-sh/uv:python3.13-slim
 WORKDIR /app
 
 RUN addgroup -g 2000 appgroup && \
