@@ -44,7 +44,9 @@ def extract_module_version(module):
   match = re.search(regex, module.get('source', ''))
   if match:
     # Add it to the module data to save passing it into sub-functions
+    log_debug(f'Found module version: {match.group(0)}')
     return match.group(0)
+  log_debug('No module version found')
   return None
 
 
@@ -233,7 +235,7 @@ def process_repo(component, lock, services):
       parsed = load_from_path(resources_dir)
     for module in parsed['module']:
       # Get terraform module version
-      module['tf_module_version'] = extract_module_version(module)
+      module['tf_mod_version'] = extract_module_version(module)
       # Same goes for namespace
       module['namespace'] = namespace
 
@@ -250,7 +252,7 @@ def process_repo(component, lock, services):
         data['elasticache_cluster'].append(extract_elasticache_cluster(module))
 
     if 'pingdom_check' in parsed.keys():
-      data['pingdom_check'].append(extract_pingdom_check(parsed))
+      data['pingdom_check'] = extract_pingdom_check(parsed)
 
     if not namespace_id:
       log_debug(f'Adding new namespace to SC: {data}')
