@@ -1,0 +1,13 @@
+[project]
+name = "hmpps-terraform-discovery"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "hmpps-python-lib",
+    "tfparse==0.6.15",
+]
+
+[tool.uv.sources]
+hmpps-python-lib = { url = "https://github.com/ministryofjustice/hmpps-python-lib/releases/download/v0.1.5/hmpps_python_lib-0.1.5-py3-none-any.whl" }
