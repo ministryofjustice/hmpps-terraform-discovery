@@ -210,7 +210,7 @@ def process_repo(component, lock, services):
     namespaces.append(namespace)
 
     log_debug(f'Processing environment/namepace: {environment.get("name")}:{namespace}')
-    namespace_id = sc.get_id(sc.namespaces_get, 'name', namespace)
+    namespace_id = sc.get_id('namespaces', 'name', namespace)
     log_debug(f'Namespace ID: {namespace_id}')
 
     data = {
