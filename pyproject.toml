@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "hmpps-python-lib",
-    "tfparse==0.6.15",
+    "tfparse==0.6.18",
 ]
 
 [tool.uv.sources]
