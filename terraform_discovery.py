@@ -4,15 +4,19 @@
 import os
 import threading
 import re
-from classes.service_catalogue import ServiceCatalogue
-from classes.slack import Slack
-import processes.scheduled_jobs as sc_scheduled_job
-from utilities.job_log_handling import log_debug, log_error, log_info, log_critical, log_warning, job
+from hmpps import ServiceCatalogue, Slack
+from hmpps.services.job_log_handling import (
+  log_debug,
+  log_error,
+  log_info,
+  job,
+)
 
 # import json
 from git import Repo
 from tfparse import load_from_path
-from time import sleep
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 class Services:
   def __init__(self, sc_params, slack_params):
@@ -30,18 +34,170 @@ class Services:
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
+
+# global namespace to keep track of the ones that have been processed
 namespaces = []
 
 
-def update_sc_namespace(ns_id, data, services):
-  sc = services.sc
-  log_debug(f'Namespace data: {data}')
-  if not ns_id:
-    log_debug(f'Adding new namespace to SC: {data}')
-    sc.add('namespaces', data)
-  else:
-    log_debug(f'Updating namespace in SC: {data}')
-    sc.update('namespaces', ns_id, data)
+def extract_module_version(module):
+  regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$'
+  match = re.search(regex, module.get('source', ''))
+  if match:
+    # Add it to the module data to save passing it into sub-functions
+    log_debug(f'Found module version: {match.group(0)}')
+    return match.group(0)
+  log_debug('No module version found')
+  return None
+
+
+def extract_cloud_platform_template(module):
+  h_sc_fields = [
+    'tf_label',
+    'tf_line_start',
+    'tf_line_end',
+    'tf_path',
+    'tf_filename',
+    'application',
+    'application_insights_instance',
+    'environment_name',
+    'github_repo',
+    'github_team_name',
+    'namespace',
+    'reviewer_teams',
+    'selected_branch_patterns',
+    'source_template_repo',
+    'protected_branches_only',
+    'is_production',
+    'tf_mod_version',
+    'prevent_self_review',
+  ]
+  # Process fields
+  hmpps_template = {
+    key: (
+      module['__tfmeta'][key.split('tf_')[1]]
+      if key.startswith('tf_') and key.split('tf_')[1] in module['__tfmeta']
+      else module.get(
+        key,
+        [] if key in ['reviewer_teams', 'selected_branch_patterns'] else None,
+      )
+    )
+    for key in h_sc_fields
+  }
+  hmpps_template['namespace'] = locals().get('namespace')
+  return hmpps_template
+
+
+def extract_rds_instance(module):
+  rd_sc_fields = [
+    'tf_label',
+    'db_instance_class',
+    'db_engine_version',
+    'rds_family',
+    'is_production',
+    'namespace',
+    'environment_name',
+    'application',
+    'tf_filename',
+    'tf_path',
+    'tf_line_start',
+    'tf_line_end',
+    'db_max_allocated_storage',
+    'infrastructure_support',
+    'business_unit',
+    'team_name',
+    'tf_mod_version',
+    'performance_insights_enabled',
+    'allow_major_version_upgrade',
+    'allow_minor_version_upgrade',
+    'deletion_protection',
+    'maintenance_window',
+    'backup_window',
+    'db_parameter',
+  ]
+  rds_instance = {
+    key: (
+      module['__tfmeta'][key.split('tf_')[1]]
+      if key.startswith('tf_') and key.split('tf_')[1] in module['__tfmeta']
+      else str(module[key])
+      if key == 'db_max_allocated_storage' and isinstance(module.get(key), int)
+      else module.get(key)
+    )
+    for key in rd_sc_fields
+  }
+  return rds_instance
+
+
+def extract_elasticache_cluster(module):
+  ec_sc_fields = [
+    'application',
+    'business_unit',
+    'engine_version',
+    'environment_name',
+    'infrastructure_support',
+    'is_production',
+    'namespace',
+    'node_type',
+    'number_cache_clusters',
+    'parameter_group_name',
+    'team_name',
+    'tf_label',
+    'tf_filename',
+    'tf_path',
+    'tf_line_end',
+    'tf_line_start',
+    'tf_mod_version',
+  ]
+
+  # Process fields
+  elasticache_cluster = {
+    key: (
+      module['__tfmeta'][key.split('tf_')[1]]
+      if key.startswith('tf_') and key.split('tf_')[1] in module['__tfmeta']
+      else module['parameter_group_name']['__name__']
+      if key == 'parameter_group_name'
+      and isinstance(module.get('parameter_group_name'), dict)
+      else module.get(key)
+    )
+    for key in ec_sc_fields
+  }
+  return elasticache_cluster
+
+
+def extract_pingdom_check(parsed):
+  pingdom_checks = []
+  p_sc_fields = [
+    'tf_label',
+    'tf_filename',
+    'tf_path',
+    'tf_line_start',
+    'tf_line_end',
+    'type',
+    'name',
+    'host',
+    'url',
+    'probefilters',
+    'encryption',
+    'resolution',
+    'notifywhenbackup',
+    'sendnotificationwhendown',
+    'notifyagainevery',
+    'port',
+    'integrationids',
+  ]
+
+  for r in parsed['pingdom_check']:
+    if 'http' in r['type'] and '__tfmeta' in r.keys():
+      pingdom_check = {
+        key: (
+          r['__tfmeta'][key.split('tf_')[1]]
+          if key.startswith('tf_') and key.split('tf_')[1] in r['__tfmeta']
+          else r.get(key)
+        )
+        for key in p_sc_fields
+      }
+      # Append the processed entry to the list
+      pingdom_checks.append(pingdom_check)
+  return pingdom_checks
 
 
 def process_repo(component, lock, services):
@@ -49,120 +205,62 @@ def process_repo(component, lock, services):
   sc = services.sc
   for environment in component.get('envs'):
     namespace = environment.get('namespace', {})
-    log_debug(
-      f'Processing environment/namepace: {environment.get("name")}:{namespace}'
-    )
-    if namespace not in namespaces:
-      # Add namespace to list of namespaces being done.
-      namespaces.append(namespace)
-    else:
-      # Skip this namespace as it's already processed.
+    if namespace in namespaces:
       log_debug(f'skipping {namespace} namespace - already been processed')
       continue
+      # Add namespace to list of namespaces being done.
+    namespaces.append(namespace)
 
-    namespace_id = None
-    if sc_namespace_data := sc.get_record(
-      sc.namespaces_get, 'name', namespace
-    ):
-      log_debug(f'Namespace data: {sc_namespace_data}')
-      namespace_id = sc_namespace_data.get('documentId')
-      log_debug(f'Namespace ID: {namespace_id}')
+    log_debug(f'Processing environment/namepace: {environment.get("name")}:{namespace}')
+    namespace_id = sc.get_id('namespaces', 'name', namespace)
+    log_debug(f'Namespace ID: {namespace_id}')
 
-    data = {'name': namespace, 'rds_instance': [], 'elasticache_cluster': [], 'hmpps_template': [], 'pingdom_check': []}
+    data = {
+      'name': namespace,
+      'rds_instance': [],
+      'elasticache_cluster': [],
+      'hmpps_template': [],
+      'pingdom_check': [],
+    }
 
     resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
 
-    if os.path.isdir(resources_dir):
-      # tfparse is not thread-safe!
-      with lock:
-        log_debug(f'Thread locked for tfparse: {resources_dir}')
-        parsed = load_from_path(resources_dir)
-      for m in parsed['module']:
-        # Get terraform module version
-        tf_mod_version = str()
-        try:
-          regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$'
-          tf_mod_version = re.search(regex, m['source'])[0]
-        except TypeError:
-          pass
-        
-        # Check if the namespace uses the cloud-platform-terraform-hmpps-template
-        if 'cloud-platform-terraform-hmpps-template' in m['source']:
-          h_sc_fields = hmpps_template_fields = ["tf_label", "tf_line_start", "tf_line_end", "tf_path", "tf_filename", "application", "application_insights_instance", "environment_name", "github_repo", "github_team_name",
-            "namespace", "reviewer_teams", "selected_branch_patterns", "source_template_repo", "protected_branches_only", "is_production", "tf_mod_version", "prevent_self_review"]
-          # Process fields
-          hmpps_template = {
-            key: (
-              m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
-              else m.get(key, [] if key in ["reviewer_teams", "selected_branch_patterns"] else None)
-            )
-            for key in h_sc_fields
-          }
-          hmpps_template["namespace"] = locals().get("namespace")
-          hmpps_template["tf_mod_version"] = tf_mod_version
-          if 'hmpps_template' in data:
-            data['hmpps_template'].append(hmpps_template)
+    # if there's no resources_dir, carry on...
+    if not os.path.isdir(resources_dir):
+      continue
 
-        # Look for RDS instances.
-        if 'cloud-platform-terraform-rds-instance' in m['source']:
-          rds_instance = m
-          rd_sc_fields = [
-              "tf_label", "db_instance_class", "db_engine_version", "rds_family", "is_production", 
-              "namespace", "environment_name", "application", "tf_filename", "tf_path", 
-              "tf_line_start", "tf_line_end", "db_max_allocated_storage", "infrastructure_support", 
-              "business_unit", "team_name", "tf_mod_version", "performance_insights_enabled", 
-              "allow_major_version_upgrade", "allow_minor_version_upgrade", "deletion_protection", 
-              "maintenance_window", "backup_window", "db_parameter"
-          ]
-          rds_instance = {
-            key: (
-              m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
-              else str(m[key]) if key == "db_max_allocated_storage" and isinstance(m.get(key), int)
-              else tf_mod_version if key == "tf_mod_version"
-              else m.get(key)
-            )
-            for key in rd_sc_fields
-          }
-          data["rds_instance"].append(rds_instance)
+    # tfparse is not thread-safe!
+    with lock:
+      log_debug(f'Thread locked for tfparse: {resources_dir}')
+      parsed = load_from_path(resources_dir)
+    for module in parsed['module']:
+      # Get terraform module version
+      module['tf_mod_version'] = extract_module_version(module)
+      # Same goes for namespace
+      module['namespace'] = namespace
 
-        # Look for elasticache instances.
-        if 'cloud-platform-terraform-elasticache-cluster' in m['source']:
-          ec_sc_fields = [         "application","business_unit","engine_version","environment_name","infrastructure_support", "is_production", "namespace","node_type", "number_cache_clusters",
-            "parameter_group_name","team_name","tf_label","tf_filename","tf_path","tf_line_end","tf_line_start","tf_mod_version"]
-          elasticache_cluster = m
-          # Process fields
-          elasticache_cluster = {
-            key: (
-              m["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in m["__tfmeta"]
-              else m["parameter_group_name"]["__name__"] if key == "parameter_group_name" and isinstance(m.get("parameter_group_name"), dict)
-              else tf_mod_version if key == "tf_mod_version"
-              else m.get(key)
-            )
-            for key in ec_sc_fields
-          }
-          data['elasticache_cluster'].append(elasticache_cluster)
-      
-      if 'pingdom_check' in parsed.keys():
-        p_sc_fields = [
-          "tf_label", "tf_filename", "tf_path", "tf_line_start", "tf_line_end", "type", "name",
-          "host", "url", "probefilters", "encryption", "resolution", "notifywhenbackup",
-          "sendnotificationwhendown", "notifyagainevery", "port", "integrationids"
-        ]
+      # Check if the namespace uses the cloud-platform-terraform-hmpps-template
+      if 'cloud-platform-terraform-hmpps-template' in module.get('source'):
+        data['hmpps_template'].append(extract_cloud_platform_template(module))
 
-        for r in parsed['pingdom_check']:
-          if 'http' in r['type'] and '__tfmeta' in r.keys():
-            pingdom_check = {
-              key: (
-                r["__tfmeta"][key.split("tf_")[1]] if key.startswith("tf_") and key.split("tf_")[1] in r["__tfmeta"]
-                else r.get(key)
-              )
-              for key in p_sc_fields
-            }
-            # Append the processed entry to the list
-            data['pingdom_check'].append(pingdom_check)
+      # Look for RDS instances.
+      if 'cloud-platform-terraform-rds-instance' in module.get('source'):
+        data['rds_instance'].append(extract_rds_instance(module))
 
-    log_debug(f'Namespace id:{namespace_id}, data: {data}')
-    update_sc_namespace(namespace_id, data, services)
+      # Look for elasticache instances.
+      if 'cloud-platform-terraform-elasticache-cluster' in module.get('source'):
+        data['elasticache_cluster'].append(extract_elasticache_cluster(module))
+
+    if 'pingdom_check' in parsed.keys():
+      data['pingdom_check'] = extract_pingdom_check(parsed)
+
+    if not namespace_id:
+      log_debug(f'Adding new namespace to SC: {data}')
+      sc.add('namespaces', data)
+      return True
+
+    log_debug(f'Updating namespace in SC: {data}')
+    sc.update('namespaces', namespace_id, data)
 
   return True
 
@@ -171,27 +269,25 @@ def process_components(components, services):
   log_info(f'Processing batch of {len(components)} components...')
   lock = threading.Lock()
   component_count = 1
-  for component in components:
-    t_repo = threading.local()
-    t_repo = threading.Thread(
-      target=process_repo, args=(component, lock, services), daemon=True
-    )
+  # now using ThreadPoolExecutor
+  with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+    future_to_component = {
+      executor.submit(process_repo, component, lock, services): component
+      for component in components
+    }
 
-    # Apply limit on total active threads
-    while threading.active_count() > (MAX_THREADS - 1):
-      log_debug(
-        f'Active Threads={threading.active_count()}, Max Threads={MAX_THREADS}'
-      )
-      sleep(10)
+    for future in as_completed(future_to_component):
+      component = future_to_component[future]
+      component_name = component.get('name')
+      try:
+        future.result()
+        log_info(
+          f'Completed processing for {component_name} ({component_count}/{len(components)})'
+        )
+      except Exception as exc:
+        log_error(f'Error processing {component_name}: {exc}')
+      component_count += 1
 
-    t_repo.start()
-    component_name = component.get('name')
-    log_info(
-      f'Started thread for {component_name} ({component_count}/{len(components)})'
-    )
-    component_count += 1
-
-  t_repo.join()
   log_info('Completed processing components')
 
 
@@ -219,9 +315,11 @@ def main():
         'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
       )
     except Exception as e:
-      slack.alert(f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}')
+      slack.alert(
+        f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
+      )
       log_error(f'Unable to clone cloud-platform-environments repo: {e}')
-      sc_scheduled_job.update(services, 'Failed')
+      sc.update_scheduled_job('Failed')
       raise SystemExit()
   else:
     try:
@@ -229,9 +327,13 @@ def main():
       origin = cp_envs_repo.remotes.origin
       origin.pull()
     except Exception as e:
-      slack.alert(f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}')
-      log_error(f'Unable to pull latest version of cloud-platform-environments repo: {e}')
-      sc_scheduled_job.update(services, 'Failed')
+      slack.alert(
+        f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
+      )
+      log_error(
+        f'Unable to pull latest version of cloud-platform-environments repo: {e}'
+      )
+      sc.update_scheduled_job('Failed')
       raise SystemExit()
 
   sc_data = sc.get_all_records(sc.components_get)
@@ -239,11 +341,11 @@ def main():
     process_components(sc_data, services)
 
   if job.error_messages:
-    sc_scheduled_job.update(services, 'Errors')
-    log_info("Terraform discovery job completed  with errors.")
+    sc.update_scheduled_job('Errors')
+    log_info('Terraform discovery job completed  with errors.')
   else:
-    sc_scheduled_job.update(services, 'Succeeded')
-    log_info("Terraform discovery job completed successfully.")
+    sc.update_scheduled_job('Succeeded')
+    log_info('Terraform discovery job completed successfully.')
 
 
 if __name__ == '__main__':

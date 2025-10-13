@@ -39,7 +39,6 @@ jobs:
       environment: ${{ matrix.environments }}
   build:
     name: Build docker image from hmpps-github-actions
-    #if: github.ref == 'refs/heads/main'
     uses: ministryofjustice/hmpps-github-actions/.github/workflows/docker_build.yml@v2 # WORKFLOW_VERSION
     with:
       docker_registry: 'ghcr.io'
@@ -61,7 +60,8 @@ jobs:
       environment: 'dev'
       app_version: '${{ needs.build.outputs.app_version }}'
       helm_additional_args: "--set 'discoveryCronJob.env.SLACK_NOTIFY_CHANNEL=${{ vars.DEV_SLACK_NOTIFY_CHANNEL }}'  --set 'discoveryCronJob.env.SLACK_ALERT_CHANNEL=${{ vars.DEV_SLACK_ALERT_CHANNEL }}'"
-  deploy_prod:
+  deploy_prod: # only if it's main
+    if: github.ref == 'refs/heads/main'
     name: Deploy to production environment
     needs:
       - build

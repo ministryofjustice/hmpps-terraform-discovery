@@ -1,5 +1,6 @@
 # dotenv environment variables file
 .env*
+.venv
 tmp*
 helm_deploy/hmpps-terraform-discovery/charts/*.tgz
 

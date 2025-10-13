@@ -20,7 +20,7 @@ spec:
           containers:
             - name: hmpps-terraform-discovery
               image: "{{ .Values.image.repository }}:{{ .Values.version }}"
-              command: ["python", "-u", "/app/terraform_discovery.py"]
+              command: ["uv", "run", "python", "-u", "/app/terraform_discovery.py"]
               env:
                 - name: PATH
                   value: "/home/appuser/.local:/usr/local/bin:$PATH"

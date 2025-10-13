@@ -1,16 +1,4 @@
-FROM  python:3.13-slim AS builder
-
-COPY requirements.txt .
-
-RUN addgroup --gid 2000 --system appgroup && \
-    adduser --uid 2000 --system appuser --gid 2000 --home /home/appuser
-
-USER 2000
-
-# install dependencies to the local user directory
-RUN pip install --user -r requirements.txt
-
-FROM python:3.13-slim
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 WORKDIR /app
 
 RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
@@ -18,16 +6,15 @@ RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
 RUN addgroup --gid 2000 --system appgroup && \
     adduser --uid 2000 --system appuser --gid 2000 --home /home/appuser
 
-# copy the dependencies from builder stage
-COPY --chown=appuser:appgroup --from=builder /home/appuser/.local /home/appuser/.local
-COPY ./terraform_discovery.py .
-COPY ./classes ./classes
-COPY ./processes ./processes
-COPY ./utilities ./utilities
-
-# update PATH environment variable
-ENV PATH=/home/appuser/.local:$PATH
+# Ensure the workdir is owned by the unprivileged user before switching
+RUN chown -R 2000:2000 /app
 
 USER 2000
+# initialise uv
+COPY pyproject.toml .
+RUN uv sync
 
-CMD [ "python", "-u", "terraform_discovery.py" ]
+# copy the dependencies from builder stage
+COPY ./terraform_discovery.py .
+
+CMD [ "uv", "run", "python", "-u", "terraform_discovery.py" ]
