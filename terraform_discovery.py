@@ -340,9 +340,30 @@ def main():
   if sc_data:
     process_components(sc_data, services)
 
+  # Remove namespaces where there is no longer a corresponding Cloud Platforms one
+  # Build a list of cloud platforms namespaces
+  base_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk'
+  try:
+    cp_namespaces = [
+      d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))
+    ]
+  except FileNotFoundError:
+    cp_namespaces = []
+    log_error(f'Base namespace directory not found: {base_dir}')
+
+  if sc_namespaces := sc.get_all_records('namespaces'):
+    for namespace in sc_namespaces:
+      if namespace.get('name') not in cp_namespaces:
+        log_info(
+          f'{namespace.get("name")} not found in Cloud Platforms Environments - removing from Service Catalogue'
+        )
+        sc.delete('namespaces', namespace.get('documentId'))
+  else:
+    log_error('Failed to get namespace data from Service Catalogue')
+
   if job.error_messages:
     sc.update_scheduled_job('Errors')
-    log_info('Terraform discovery job completed  with errors.')
+    log_info('Terraform discovery job completed with errors.')
   else:
     sc.update_scheduled_job('Succeeded')
     log_info('Terraform discovery job completed successfully.')
