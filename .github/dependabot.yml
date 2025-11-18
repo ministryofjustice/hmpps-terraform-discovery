@@ -8,3 +8,7 @@ updates:
     directory: "/"  # Location of workflow files
     schedule:
       interval: "weekly"
+  - package-ecosystem: "helm"
+    directory: "/helm_deploy/hmpps-terraform-discovery"
+    schedule:
+      interval: "weekly"
