@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-"""Terraform discovery - parses the cloudplatform environments repo for namespace and terraform resources, and stores the results in the service catalogue"""
+"""Terraform discovery - parses the cloudplatform environments repo for namespace and 
+terraform resources, and stores the results in the service catalogue"""
 
 import os
 import threading
@@ -30,7 +31,8 @@ class Services:
       raise SystemExit()
 
 
-# Set maximum number of concurrent threads to run, try to avoid secondary github api limits.
+# Set maximum number of concurrent threads to run, try to avoid secondary 
+# github api limits.
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
@@ -223,7 +225,10 @@ def process_repo(component, lock, services):
       'pingdom_check': [],
     }
 
-    resources_dir = f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/{namespace}/resources'
+    resources_dir = (
+      f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/'
+      f'{namespace}/resources'
+    )
 
     # if there's no resources_dir, carry on...
     if not os.path.isdir(resources_dir):
@@ -282,7 +287,8 @@ def process_components(components, services):
       try:
         future.result()
         log_info(
-          f'Completed processing for {component_name} ({component_count}/{len(components)})'
+          f'Completed processing for {component_name} '
+          f'({component_count}/{len(components)})'
         )
       except Exception as exc:
         log_error(f'Error processing {component_name}: {exc}')
@@ -316,7 +322,8 @@ def main():
       )
     except Exception as e:
       slack.alert(
-        f'*Terraform Discovery failed*: Unable to clone cloud-platform-environments repo: {e}'
+        '*Terraform Discovery failed*: '
+        f'Unable to clone cloud-platform-environments repo: {e}'
       )
       log_error(f'Unable to clone cloud-platform-environments repo: {e}')
       sc.update_scheduled_job('Failed')
@@ -328,7 +335,8 @@ def main():
       origin.pull()
     except Exception as e:
       slack.alert(
-        f'*Terraform Discovery failed*: Unable to pull latest version of cloud-platform-environments repo: {e}'
+        '*Terraform Discovery failed*: '
+        f'Unable to pull latest version of cloud-platform-environments repo: {e}'
       )
       log_error(
         f'Unable to pull latest version of cloud-platform-environments repo: {e}'
@@ -355,7 +363,8 @@ def main():
     for namespace in sc_namespaces:
       if namespace.get('name') not in cp_namespaces:
         log_info(
-          f'{namespace.get("name")} not found in Cloud Platforms Environments - removing from Service Catalogue'
+          f'{namespace.get("name")} not found in Cloud Platforms Environments - '
+          f'removing from Service Catalogue'
         )
         sc.delete('namespaces', namespace.get('documentId'))
   else:
