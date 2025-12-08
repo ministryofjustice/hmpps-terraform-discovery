@@ -264,7 +264,7 @@ dependencies = [
 requires-dist = [
     { name = "gitpython", specifier = "==3.1.45" },
     { name = "hmpps-sre-python-lib", url = "https://github.com/ministryofjustice/hmpps-sre-python-lib/releases/download/v0.1.10/hmpps_sre_python_lib-0.1.10-py3-none-any.whl" },
-    { name = "tfparse", git = "https://github.com/cloud-custodian/tfparse.git?rev=v0.6.18" },
+    { name = "tfparse", specifier = "==0.6.18" },
 ]
 
 [[package]]
@@ -497,9 +497,16 @@ wheels = [
 [[package]]
 name = "tfparse"
 version = "0.6.18"
-source = { git = "https://github.com/cloud-custodian/tfparse.git?rev=v0.6.18#155b2198859e63e113950f5509c5792da5d95ff1" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cffi" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/0e/0ae73f1458e439e9e3f0b5dfb6b7daa749349cb303c727d240c9a1ad5c5e/tfparse-0.6.18-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:416eb3f47e55e6f0a567240bee8f7e3c89e12ff58ae94c7c825c667bc100ffe2", size = 14520145, upload-time = "2025-08-12T19:22:57.936Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/bd/919062577c97aae97fd6b2f70d01e832d2200f194e2792337c6d31cacc78/tfparse-0.6.18-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:3b8f0336e259e1588071a766c53511588f4ead6aafe714590f7f965fe247fd6e", size = 13609008, upload-time = "2025-08-12T19:23:00.137Z" },
+    { url = "https://files.pythonhosted.org/packages/7f/d4/865756f59a4e29a2c1e0364b7f0c76787c1020e9e4da9a716df5553ccc1e/tfparse-0.6.18-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:24001fe6e7fd9b71edf1a23f07e5927b37c994d31001c1b0e84c2f98c3138395", size = 15506743, upload-time = "2025-08-12T19:23:02.612Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/23/1262d68d2f82fb58a6d0a782307f52c3672746ed04e5895edeb112ea37b7/tfparse-0.6.18-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:cb2c0cbf914114103a35896666b511661201b17c3012b648a3bd9593bdd4581a", size = 14222453, upload-time = "2025-08-12T19:23:04.663Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/4b/717b9a270afe2793603ad1a09566d84be6a2d47613b4a52b09ec9a87c413/tfparse-0.6.18-cp313-cp313-win_amd64.whl", hash = "sha256:cc0ae38f53bad5ab769aea59342f5a57b95dcb6f7c1a84f0777256284a8641d1", size = 14796702, upload-time = "2025-08-12T19:23:06.858Z" },
 ]
 
 [[package]]
