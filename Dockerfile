@@ -1,4 +1,4 @@
-FROM ghcr.io/ministryofjustice/hmpps-python:python3.13-alpine-20251203
+FROM ghcr.io/ministryofjustice/hmpps-python:python3.13-alpine-20251208
 WORKDIR /app
 
 USER 0
