@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "gitpython==3.1.45",
     "hmpps-sre-python-lib",
-    "tfparse==0.6.18",
+    "tfparse @ git+https://github.com/cloud-custodian/tfparse.git@v0.6.18", 
 ]
 
 [tool.uv.sources]
