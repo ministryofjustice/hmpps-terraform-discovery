@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Terraform discovery - parses the cloudplatform environments repo for namespace and 
+"""Terraform discovery - parses the cloudplatform environments repo for namespace and
 terraform resources, and stores the results in the service catalogue"""
 
 import os
@@ -31,7 +31,7 @@ class Services:
       raise SystemExit()
 
 
-# Set maximum number of concurrent threads to run, try to avoid secondary 
+# Set maximum number of concurrent threads to run, try to avoid secondary
 # github api limits.
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
@@ -39,6 +39,38 @@ TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
 
 # global namespace to keep track of the ones that have been processed
 namespaces = []
+
+
+def clone_repo(slack):
+  log_debug('Starting download of cloud-platform-environments repository')
+  if not os.path.isdir(TEMP_DIR):
+    try:
+      cp_envs_repo = Repo.clone_from(
+        'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
+      )
+    except Exception as e:
+      log_error(f'Unable to clone cloud-platform-environments repo: {e}')
+      slack.alert(
+        '*Terraform Discovery failed*: '
+        f'Unable to clone cloud-platform-environments repo: {e}'
+      )
+      return False
+  else:
+    try:
+      cp_envs_repo = Repo(TEMP_DIR)
+      origin = cp_envs_repo.remotes.origin
+      origin.pull()
+    except Exception as e:
+      log_error(
+        f'Unable to pull latest version of cloud-platform-environments repo: {e}'
+      )
+      slack.alert(
+        '*Terraform Discovery failed*: '
+        f'Unable to pull latest version of cloud-platform-environments repo: {e}'
+      )
+      return False
+  log_debug('Completed download of cloud-platform-environments repository')
+  return True
 
 
 def extract_module_version(module):
@@ -314,36 +346,14 @@ def main():
   job.name = 'hmpps-terraform-discovery'
   services = Services(sc_params, slack_params)
   sc = services.sc
-  slack = services.slack
-  if not os.path.isdir(TEMP_DIR):
-    try:
-      cp_envs_repo = Repo.clone_from(
-        'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
-      )
-    except Exception as e:
-      slack.alert(
-        '*Terraform Discovery failed*: '
-        f'Unable to clone cloud-platform-environments repo: {e}'
-      )
-      log_error(f'Unable to clone cloud-platform-environments repo: {e}')
-      sc.update_scheduled_job('Failed')
-      raise SystemExit()
-  else:
-    try:
-      cp_envs_repo = Repo(TEMP_DIR)
-      origin = cp_envs_repo.remotes.origin
-      origin.pull()
-    except Exception as e:
-      slack.alert(
-        '*Terraform Discovery failed*: '
-        f'Unable to pull latest version of cloud-platform-environments repo: {e}'
-      )
-      log_error(
-        f'Unable to pull latest version of cloud-platform-environments repo: {e}'
-      )
-      sc.update_scheduled_job('Failed')
-      raise SystemExit()
 
+  # Clone the repository
+  slack = services.slack
+  if not (clone_repo(slack)):
+    sc.update_scheduled_job('Failed')
+    raise SystemExit(1)
+
+  log_debug('Getting Service Catalogue data')
   sc_data = sc.get_all_records(sc.components_get)
   if sc_data:
     process_components(sc_data, services)
