@@ -330,6 +330,7 @@ def process_components(components, services):
 
 
 def main():
+  log_debug('Starting main')
   slack_params = {
     'token': os.getenv('SLACK_BOT_TOKEN'),
     'notify_channel': os.getenv('SLACK_NOTIFY_CHANNEL', ''),
