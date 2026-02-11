@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Terraform discovery - parses the cloudplatform environments repo for namespace and 
+"""Terraform discovery - parses the cloudplatform environments repo for namespace and
 terraform resources, and stores the results in the service catalogue"""
 
 import os
@@ -20,9 +20,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 class Services:
-  def __init__(self, sc_params, slack_params):
-    self.slack = Slack(slack_params)
-    self.sc = ServiceCatalogue(sc_params)
+  def __init__(self):
+    self.slack = Slack()
+    self.sc = ServiceCatalogue()
 
     if not self.sc.connection_ok:
       self.slack.alert(
@@ -31,7 +31,7 @@ class Services:
       raise SystemExit()
 
 
-# Set maximum number of concurrent threads to run, try to avoid secondary 
+# Set maximum number of concurrent threads to run, try to avoid secondary
 # github api limits.
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
@@ -298,21 +298,8 @@ def process_components(components, services):
 
 
 def main():
-  slack_params = {
-    'token': os.getenv('SLACK_BOT_TOKEN'),
-    'notify_channel': os.getenv('SLACK_NOTIFY_CHANNEL', ''),
-    'alert_channel': os.getenv('SLACK_ALERT_CHANNEL', ''),
-  }
-
-  # service catalogue parameters
-  sc_params = {
-    'url': os.getenv('SERVICE_CATALOGUE_API_ENDPOINT'),
-    'key': os.getenv('SERVICE_CATALOGUE_API_KEY'),
-    'filter': os.getenv('SC_FILTER', ''),
-  }
-
   job.name = 'hmpps-terraform-discovery'
-  services = Services(sc_params, slack_params)
+  services = Services()
   sc = services.sc
   slack = services.slack
   if not os.path.isdir(TEMP_DIR):
