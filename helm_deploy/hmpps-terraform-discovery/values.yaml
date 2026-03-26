@@ -11,4 +11,5 @@ discoveryCronJob:
     hmpps-terraform-discovery:
       SERVICE_CATALOGUE_API_ENDPOINT: "SERVICE_CATALOGUE_API_ENDPOINT"
       SERVICE_CATALOGUE_API_KEY: "SERVICE_CATALOGUE_API_KEY"
+    hmpps-sre-app-slack-bot:
       SLACK_BOT_TOKEN: "SLACK_BOT_TOKEN"
