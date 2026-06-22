@@ -42,7 +42,7 @@ namespaces = []
 
 
 def extract_module_version(module):
-  regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9])?(\.[0-9])?$'
+  regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9]+){0,2}$'
   match = re.search(regex, module.get('source', ''))
   if match:
     # Add it to the module data to save passing it into sub-functions
@@ -85,7 +85,6 @@ def extract_cloud_platform_template(module):
     )
     for key in h_sc_fields
   }
-  hmpps_template['namespace'] = locals().get('namespace')
   return hmpps_template
 
 
@@ -207,11 +206,12 @@ def process_repo(component, lock, services):
   sc = services.sc
   for environment in component.get('envs'):
     namespace = environment.get('namespace', {})
-    if namespace in namespaces:
-      log_debug(f'skipping {namespace} namespace - already been processed')
-      continue
+    with lock:
+      if namespace in namespaces:
+        log_debug(f'skipping {namespace} namespace - already been processed')
+        continue
       # Add namespace to list of namespaces being done.
-    namespaces.append(namespace)
+      namespaces.append(namespace)
 
     log_debug(f'Processing environment/namepace: {environment.get("name")}:{namespace}')
     namespace_id = sc.get_id('namespaces', 'name', namespace)
@@ -243,17 +243,18 @@ def process_repo(component, lock, services):
       module['tf_mod_version'] = extract_module_version(module)
       # Same goes for namespace
       module['namespace'] = namespace
+      source = module.get('source') or ''
 
       # Check if the namespace uses the cloud-platform-terraform-hmpps-template
-      if 'cloud-platform-terraform-hmpps-template' in module.get('source'):
+      if 'cloud-platform-terraform-hmpps-template' in source:
         data['hmpps_template'].append(extract_cloud_platform_template(module))
 
       # Look for RDS instances.
-      if 'cloud-platform-terraform-rds-instance' in module.get('source'):
+      if 'cloud-platform-terraform-rds-instance' in source:
         data['rds_instance'].append(extract_rds_instance(module))
 
       # Look for elasticache instances.
-      if 'cloud-platform-terraform-elasticache-cluster' in module.get('source'):
+      if 'cloud-platform-terraform-elasticache-cluster' in source:
         data['elasticache_cluster'].append(extract_elasticache_cluster(module))
 
     if 'pingdom_check' in parsed.keys():
@@ -262,7 +263,7 @@ def process_repo(component, lock, services):
     if not namespace_id:
       log_debug(f'Adding new namespace to SC: {data}')
       sc.add('namespaces', data)
-      return True
+      continue
 
     log_debug(f'Updating namespace in SC: {data}')
     sc.update('namespaces', namespace_id, data)
