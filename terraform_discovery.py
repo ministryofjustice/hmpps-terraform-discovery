@@ -164,6 +164,32 @@ def extract_elasticache_cluster(module):
   return elasticache_cluster
 
 
+def extract_hmpps_egress_controls(module):
+  hec_sc_fields = [
+    'tf_label',
+    'enable_envoy_setup',
+    'enable_egress_controls',
+    'namespace',
+    'envoy_extra_allowed_hosts_exact',
+    'envoy_extra_allowed_hosts_suffixes',
+    'tf_filename',
+    'tf_path',
+    'tf_line_start',
+    'tf_line_end',
+    'tf_mod_version',
+  ]
+
+  hmpps_egress_controls = {
+    key: (
+      module['__tfmeta'][key.split('tf_')[1]]
+      if key.startswith('tf_') and key.split('tf_')[1] in module['__tfmeta']
+      else module.get(key)
+    )
+    for key in hec_sc_fields
+  }
+  return hmpps_egress_controls
+
+
 def extract_pingdom_check(parsed):
   pingdom_checks = []
   p_sc_fields = [
@@ -221,6 +247,7 @@ def process_repo(component, lock, services):
       'name': namespace,
       'rds_instance': [],
       'elasticache_cluster': [],
+      'hmpps_egress_controls': [],
       'hmpps_template': [],
       'pingdom_check': [],
     }
@@ -256,6 +283,10 @@ def process_repo(component, lock, services):
       # Look for elasticache instances.
       if 'cloud-platform-terraform-elasticache-cluster' in source:
         data['elasticache_cluster'].append(extract_elasticache_cluster(module))
+
+      # Look for hmpps-egress-controls instances.
+      if 'cloud-platform-terraform-hmpps-egress-controls' in source:
+        data['hmpps_egress_controls'].append(extract_hmpps_egress_controls(module))
 
     if 'pingdom_check' in parsed.keys():
       data['pingdom_check'] = extract_pingdom_check(parsed)
