@@ -1,7 +1,10 @@
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim
 WORKDIR /app
 
-RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
+RUN apt update \
+    && apt -y upgrade \
+    && apt install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --gid 2000 --system appgroup && \
     adduser --uid 2000 --system appuser --gid 2000 --home /home/appuser
