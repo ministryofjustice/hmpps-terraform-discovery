@@ -3,7 +3,7 @@ WORKDIR /app
 
 RUN apt update \
     && apt -y upgrade \
-    && apt install -y git \
+    && apt install -y --no-install-recommends git zlib1g libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --gid 2000 --system appgroup && \
