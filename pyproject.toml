@@ -1,14 +1,13 @@
 [project]
 name = "hmpps-terraform-discovery"
-version = "0.1.4"
+version = "0.1.5"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "gitpython==3.1.51",
     "hmpps-sre-python-lib",
     "tfparse==0.6.20",
 ]
 
 [tool.uv.sources]
-hmpps-sre-python-lib = { url = "https://github.com/ministryofjustice/hmpps-sre-python-lib/releases/download/v1.2.5/hmpps_sre_python_lib-1.2.5-py3-none-any.whl" }
+hmpps-sre-python-lib = { url = "https://github.com/ministryofjustice/hmpps-sre-python-lib/releases/download/v1.2.8/hmpps_sre_python_lib-1.2.8-py3-none-any.whl" }
