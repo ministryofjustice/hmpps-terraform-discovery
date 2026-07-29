@@ -64,15 +64,6 @@ def _validate_proxy_configuration():
       'or set ALLOW_NO_PROXY_LOCAL=true for local testing only.'
     )
 
-  http_proxy = REQUEST_PROXIES.get('http')
-  https_proxy = REQUEST_PROXIES.get('https')
-  if http_proxy:
-    os.environ['http_proxy'] = http_proxy
-    os.environ['HTTP_PROXY'] = http_proxy
-  if https_proxy:
-    os.environ['https_proxy'] = https_proxy
-    os.environ['HTTPS_PROXY'] = https_proxy
-
   log_info('Outbound proxy enabled for Terraform discovery clients.')
 
 
@@ -393,6 +384,12 @@ def main():
   else:
     try:
       cp_envs_repo = Repo(TEMP_DIR)
+      if REQUEST_PROXIES.get('http') or REQUEST_PROXIES.get('https'):
+        with cp_envs_repo.config_writer() as config_writer:
+          if REQUEST_PROXIES.get('http'):
+            config_writer.set_value('http', 'proxy', REQUEST_PROXIES['http'])
+          if REQUEST_PROXIES.get('https'):
+            config_writer.set_value('https', 'proxy', REQUEST_PROXIES['https'])
       origin = cp_envs_repo.remotes.origin
       origin.pull()
     except Exception as e:
