@@ -6,10 +6,12 @@ import os
 import threading
 import re
 from hmpps import ServiceCatalogue, Slack
+from hmpps.utils.utilities import get_request_proxies
 from hmpps.services.job_log_handling import (
   log_debug,
   log_error,
   log_info,
+  log_warning,
   job,
 )
 
@@ -36,9 +38,42 @@ class Services:
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
+REQUEST_PROXIES = {}
 
 # global namespace to keep track of the ones that have been processed
 namespaces = []
+
+
+def _validate_proxy_configuration():
+  """Validate proxy requirement while allowing an explicit local override."""
+  global REQUEST_PROXIES
+
+  allow_no_proxy_local = (
+    os.getenv('ALLOW_NO_PROXY_LOCAL', '').strip().lower() in {'1', 'true', 'yes'}
+  )
+  REQUEST_PROXIES = get_request_proxies()
+
+  if not REQUEST_PROXIES:
+    if allow_no_proxy_local:
+      log_warning(
+        'ALLOW_NO_PROXY_LOCAL enabled: running without outbound proxy settings.'
+      )
+      return
+    raise RuntimeError(
+      'Outbound proxy is required. Set HTTPS_PROXY or HTTP_PROXY for this job, '
+      'or set ALLOW_NO_PROXY_LOCAL=true for local testing only.'
+    )
+
+  http_proxy = REQUEST_PROXIES.get('http')
+  https_proxy = REQUEST_PROXIES.get('https')
+  if http_proxy:
+    os.environ['http_proxy'] = http_proxy
+    os.environ['HTTP_PROXY'] = http_proxy
+  if https_proxy:
+    os.environ['https_proxy'] = https_proxy
+    os.environ['HTTPS_PROXY'] = https_proxy
+
+  log_info('Outbound proxy enabled for Terraform discovery clients.')
 
 
 def extract_module_version(module):
@@ -331,13 +366,21 @@ def process_components(components, services):
 
 def main():
   job.name = 'hmpps-terraform-discovery'
+  _validate_proxy_configuration()
   services = Services()
   sc = services.sc
   slack = services.slack
+  clone_multi_options = []
+  if REQUEST_PROXIES.get('http'):
+    clone_multi_options.append(f'-c http.proxy={REQUEST_PROXIES["http"]}')
+  if REQUEST_PROXIES.get('https'):
+    clone_multi_options.append(f'-c https.proxy={REQUEST_PROXIES["https"]}')
   if not os.path.isdir(TEMP_DIR):
     try:
       cp_envs_repo = Repo.clone_from(
-        'https://github.com/ministryofjustice/cloud-platform-environments.git', TEMP_DIR
+        'https://github.com/ministryofjustice/cloud-platform-environments.git',
+        TEMP_DIR,
+        multi_options=clone_multi_options,
       )
     except Exception as e:
       slack.alert(
