@@ -47,7 +47,6 @@ namespaces = []
 def _validate_proxy_configuration():
   """Validate proxy requirement while allowing an explicit local override."""
   global REQUEST_PROXIES
-
   allow_no_proxy_local = (
     os.getenv('ALLOW_NO_PROXY_LOCAL', '').strip().lower() in {'1', 'true', 'yes'}
   )
@@ -58,13 +57,14 @@ def _validate_proxy_configuration():
       log_warning(
         'ALLOW_NO_PROXY_LOCAL enabled: running without outbound proxy settings.'
       )
-      return
+      return {}
     raise RuntimeError(
       'Outbound proxy is required. Set HTTPS_PROXY or HTTP_PROXY for this job, '
       'or set ALLOW_NO_PROXY_LOCAL=true for local testing only.'
     )
 
   log_info('Outbound proxy enabled for Terraform discovery clients.')
+  return REQUEST_PROXIES
 
 
 def extract_module_version(module):
@@ -361,17 +361,11 @@ def main():
   services = Services()
   sc = services.sc
   slack = services.slack
-  clone_multi_options = []
-  if REQUEST_PROXIES.get('http'):
-    clone_multi_options.append(f'-c http.proxy={REQUEST_PROXIES["http"]}')
-  if REQUEST_PROXIES.get('https'):
-    clone_multi_options.append(f'-c https.proxy={REQUEST_PROXIES["https"]}')
   if not os.path.isdir(TEMP_DIR):
     try:
       cp_envs_repo = Repo.clone_from(
         'https://github.com/ministryofjustice/cloud-platform-environments.git',
         TEMP_DIR,
-        multi_options=clone_multi_options,
       )
     except Exception as e:
       slack.alert(
