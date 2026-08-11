@@ -6,7 +6,6 @@ import os
 import threading
 import re
 from hmpps import ServiceCatalogue, Slack
-from hmpps.utils.utilities import get_request_proxies
 from hmpps.services.job_log_handling import (
   log_debug,
   log_error,
@@ -38,34 +37,9 @@ class Services:
 MAX_THREADS = 10
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
-REQUEST_PROXIES = {}
 
 # global namespace to keep track of the ones that have been processed
 namespaces = []
-
-
-def _validate_proxy_configuration():
-  """Validate proxy requirement while allowing an explicit local override."""
-  global REQUEST_PROXIES
-  allow_no_proxy_local = (
-    os.getenv('ALLOW_NO_PROXY_LOCAL', '').strip().lower() in {'1', 'true', 'yes'}
-  )
-  REQUEST_PROXIES = get_request_proxies()
-
-  if not REQUEST_PROXIES:
-    if allow_no_proxy_local:
-      log_warning(
-        'ALLOW_NO_PROXY_LOCAL enabled: running without outbound proxy settings.'
-      )
-      return {}
-    raise RuntimeError(
-      'Outbound proxy is required. Set HTTPS_PROXY or HTTP_PROXY for this job, '
-      'or set ALLOW_NO_PROXY_LOCAL=true for local testing only.'
-    )
-
-  log_info('Outbound proxy enabled for Terraform discovery clients.')
-  return REQUEST_PROXIES
-
 
 def extract_module_version(module):
   regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9]+){0,2}$'
@@ -357,7 +331,6 @@ def process_components(components, services):
 
 def main():
   job.name = 'hmpps-terraform-discovery'
-  _validate_proxy_configuration()
   services = Services()
   sc = services.sc
   slack = services.slack
@@ -378,12 +351,6 @@ def main():
   else:
     try:
       cp_envs_repo = Repo(TEMP_DIR)
-      if REQUEST_PROXIES.get('http') or REQUEST_PROXIES.get('https'):
-        with cp_envs_repo.config_writer() as config_writer:
-          if REQUEST_PROXIES.get('http'):
-            config_writer.set_value('http', 'proxy', REQUEST_PROXIES['http'])
-          if REQUEST_PROXIES.get('https'):
-            config_writer.set_value('https', 'proxy', REQUEST_PROXIES['https'])
       origin = cp_envs_repo.remotes.origin
       origin.pull()
     except Exception as e:
