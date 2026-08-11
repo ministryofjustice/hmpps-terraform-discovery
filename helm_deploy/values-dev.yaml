@@ -5,6 +5,19 @@ discoveryCronJob:
   enabled: true
   env:
     LOG_LEVEL: debug
+  namespace_secrets:
+    hmpps-terraform-discovery:
+      SERVICE_CATALOGUE_API_ENDPOINT: "SERVICE_CATALOGUE_API_ENDPOINT"
+      SERVICE_CATALOGUE_API_KEY: "SERVICE_CATALOGUE_API_KEY"
+    hmpps-sre-app-slack-bot:
+      SLACK_BOT_TOKEN: "SLACK_BOT_TOKEN"
+    hmpps-envoy-https-proxy-env:
+      HTTP_PROXY: "HTTP_PROXY"
+      HTTPS_PROXY: "HTTPS_PROXY"
+      NO_PROXY: "NO_PROXY"
+      http_proxy: "HTTP_PROXY"
+      https_proxy: "HTTPS_PROXY"
+      no_proxy: "NO_PROXY"
 
 cron:
   github_terraform_discovery: "05 9 * * *"
