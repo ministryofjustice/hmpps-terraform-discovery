@@ -1,7 +1,7 @@
 ---
 image:
-  repository: ghcr.io/ministryofjustice/hmpps-terraform-discovery
-  tag: xxx
+  repository: ecr_repository # override at deployment time
+  tag: app_version # override at deployment time
 
 generic-prometheus-alerts:
   targetApplication: hmpps-terraform-discovery
