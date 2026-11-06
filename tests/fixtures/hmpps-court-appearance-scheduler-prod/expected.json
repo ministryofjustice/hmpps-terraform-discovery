@@ -1,0 +1,132 @@
+{
+  "elasticache_cluster": [
+    {
+      "application": "HMPPS Court Appearance Scheduler",
+      "business_unit": "HMPPS",
+      "engine_version": "7.0",
+      "environment_name": "prod",
+      "infrastructure_support": "moveandimprove@justice.gov.uk",
+      "is_production": "true",
+      "namespace": "hmpps-court-appearance-scheduler-prod",
+      "node_type": "cache.t4g.micro",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "hmpps-move-and-improve",
+      "tf_filename": "elasticache.tf",
+      "tf_label": "elasticache_redis",
+      "tf_line_end": 21,
+      "tf_line_start": 5,
+      "tf_mod_version": "8.1.0",
+      "tf_path": "module.elasticache_redis"
+    }
+  ],
+  "hmpps_egress_controls": [],
+  "hmpps_template": [
+    {
+      "application": "hmpps-court-appearance-scheduler-api",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-court-appearance-scheduler-api",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-court-appearance-scheduler-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": null,
+      "reviewer_teams": [
+        "hmpps-move-and-improve",
+        "hmpps-move-and-improve"
+      ],
+      "selected_branch_patterns": [
+        "main"
+      ],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "github.tf",
+      "tf_label": "court-appearance-scheduler-api",
+      "tf_line_end": 16,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.court-appearance-scheduler-api"
+    },
+    {
+      "application": "hmpps-court-appearance-scheduler-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-court-appearance-scheduler-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-court-appearance-scheduler-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": null,
+      "reviewer_teams": [
+        "hmpps-move-and-improve",
+        "hmpps-move-and-improve"
+      ],
+      "selected_branch_patterns": [
+        "main"
+      ],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "github.tf",
+      "tf_label": "court-appearance-scheduler-ui",
+      "tf_line_end": 33,
+      "tf_line_start": 18,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.court-appearance-scheduler-ui"
+    }
+  ],
+  "name": "hmpps-court-appearance-scheduler-prod",
+  "pingdom_check": [],
+  "rds_instance": [
+    {
+      "allow_major_version_upgrade": true,
+      "allow_minor_version_upgrade": true,
+      "application": "HMPPS Court Appearance Scheduler",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18",
+      "db_instance_class": "db.t4g.large",
+      "db_max_allocated_storage": "200",
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "5000"
+        }
+      ],
+      "deletion_protection": null,
+      "environment_name": "prod",
+      "infrastructure_support": "moveandimprove@justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": "sun:00:00-sun:03:00",
+      "namespace": "hmpps-court-appearance-scheduler-prod",
+      "performance_insights_enabled": false,
+      "rds_family": "postgres18",
+      "team_name": "hmpps-move-and-improve",
+      "tf_filename": "rds-postgresql.tf",
+      "tf_label": "rds",
+      "tf_line_end": 69,
+      "tf_line_start": 7,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.rds"
+    }
+  ]
+}

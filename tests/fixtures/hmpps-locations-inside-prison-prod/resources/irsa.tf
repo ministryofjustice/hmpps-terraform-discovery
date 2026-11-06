@@ -1,0 +1,74 @@
+# Add the names of the SQS & SNS which the app needs permissions to access.
+# The value of each item should be the namespace where the SQS was created.
+# This information is used to collect the IAM policies which are used by the IRSA module.
+locals {
+  sqs_queues = {
+    "Digital-Prison-Services-prod-hmpps_audit_queue" = "hmpps-audit-prod"
+  }
+  sns_topics = {
+    "cloud-platform-Digital-Prison-Services-97e6567cf80881a8a52290ff2c269b08" = "hmpps-domain-events-prod"
+  }
+  sqs_policies = { for item in data.aws_ssm_parameter.irsa_policy_arns_sqs : item.name => item.value }
+  sns_policies = { for item in data.aws_ssm_parameter.irsa_policy_arns_sns : item.name => item.value }
+}
+
+module "irsa" {
+  source = "github.com/ministryofjustice/cloud-platform-terraform-irsa?ref=2.1.0"
+
+  eks_cluster_name     = var.eks_cluster_name
+  namespace            = var.namespace
+  service_account_name = "hmpps-locations-inside-prison-api"
+  role_policy_arns = merge(
+    local.sqs_policies,
+    local.sns_policies,
+    { prisoner-event-queue = module.prisoner-event-queue.irsa_policy_arn },
+    { prisoner-event-dlq = module.prisoner-event-dlq.irsa_policy_arn },
+    { (module.update_from_external_system_events_queue.sqs_name) = module.update_from_external_system_events_queue.irsa_policy_arn },
+    { (module.update_from_external_system_events_dlq.sqs_name) = module.update_from_external_system_events_dlq.irsa_policy_arn },
+    { (module.update_cell_certificate_queue.sqs_name) = module.update_cell_certificate_queue.irsa_policy_arn },
+    { (module.update_cell_certificate_dlq.sqs_name) = module.update_cell_certificate_dlq.irsa_policy_arn },
+    { prisoner_property_rds_policy = module.prisoner_property_rds.irsa_policy_arn },
+    { prisoner_property_rds_replica_policy = module.prisoner_property_rds_replica[0].irsa_policy_arn },
+    { dps_rds = module.dps_rds.irsa_policy_arn },
+    { dps_rds_replica = module.dps_rds_replica[0].irsa_policy_arn },
+  )
+  # Tags
+  business_unit          = var.business_unit
+  application            = var.application
+  is_production          = var.is_production
+  team_name              = var.team_name
+  environment_name       = var.environment
+  infrastructure_support = var.infrastructure_support
+}
+
+data "aws_ssm_parameter" "irsa_policy_arns_sqs" {
+  for_each = local.sqs_queues
+  name     = "/${each.value}/sqs/${each.key}/irsa-policy-arn"
+}
+
+data "aws_ssm_parameter" "irsa_policy_arns_sns" {
+  for_each = local.sns_topics
+  name     = "/${each.value}/sns/${each.key}/irsa-policy-arn"
+}
+
+# Service account for the prisoner property front end, so it can send page-view events to the
+# HMPPS Audit queue. Deliberately separate from the API service accounts above so the front end
+# does not inherit their RDS and SNS access.
+# The helm chart must set generic-service.serviceAccountName to match the name below.
+module "hmpps-prisoner-property-ui-service-account" {
+  source = "github.com/ministryofjustice/cloud-platform-terraform-irsa?ref=2.1.0"
+
+  eks_cluster_name     = var.eks_cluster_name
+  namespace            = var.namespace
+  service_account_name = "hmpps-prisoner-property-ui"
+  role_policy_arns = {
+    audit_sqs = data.aws_ssm_parameter.irsa_policy_arns_sqs["Digital-Prison-Services-prod-hmpps_audit_queue"].value
+  }
+  # Tags
+  business_unit          = var.business_unit
+  application            = var.application
+  is_production          = var.is_production
+  team_name              = var.team_name
+  environment_name       = var.environment
+  infrastructure_support = var.infrastructure_support
+}

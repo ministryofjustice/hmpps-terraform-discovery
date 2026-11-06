@@ -49,3 +49,29 @@ uv run python -u terraform_discovery.py
 
 - On first run, the cloud-platform-environments repository is cloned into TEMP_DIR.
 - On subsequent runs, it pulls latest changes from origin.
+
+## Terraform parsing
+
+Terraform files are parsed by `tf_parser.py`, a small pure-Python replacement for
+[tfparse](https://github.com/cloud-custodian/tfparse). tfparse wraps a Go
+c-shared library that can't be loaded on musl (see
+[golang/go#54805](https://github.com/golang/go/issues/54805)), which blocked us
+from using the shared `hmpps-python` Alpine image.
+
+`tf_parser` uses [python-hcl2](https://github.com/amplify-education/python-hcl2)
+to parse HCL and evaluates the subset of Terraform that discovery needs: variable
+defaults, locals, references to resources and module arguments, string templates,
+operators, conditionals, common built-in functions and `count`/`for_each`. Output
+follows tfparse's format, so the `extract_*` functions are unchanged. Anything it
+can't resolve (e.g. remote state or unsupported functions) comes back as the
+original expression text or an `__attribute__` reference rather than an error.
+
+## Tests
+
+```bash
+uv run pytest
+```
+
+- `tests/test_tf_parser.py` - unit tests for the parser
+- `tests/test_regression.py` - compares discovery output for real namespaces
+  against snapshots generated with tfparse (see `tests/fixtures/README.md`)

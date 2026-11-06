@@ -1,0 +1,428 @@
+{
+  "elasticache_cluster": [
+    {
+      "application": "Community Accommodation",
+      "business_unit": "HMPPS",
+      "engine_version": "7.0",
+      "environment_name": "prod",
+      "infrastructure_support": "casdev@digital.justice.gov.uk",
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "node_type": "cache.t4g.medium",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "hmpps-community-accommodation-live",
+      "tf_filename": "elasticache.tf",
+      "tf_label": "elasticache_redis",
+      "tf_line_end": 25,
+      "tf_line_start": 5,
+      "tf_mod_version": "8.0.0",
+      "tf_path": "module.elasticache_redis"
+    },
+    {
+      "application": "Community Accommodation",
+      "business_unit": "HMPPS",
+      "engine_version": "7.0",
+      "environment_name": "prod",
+      "infrastructure_support": "casdev@digital.justice.gov.uk",
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "node_type": "cache.t4g.medium",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "hmpps-community-accommodation-live",
+      "tf_filename": "sas_elasticache.tf",
+      "tf_label": "sas_elasticache_redis",
+      "tf_line_end": 21,
+      "tf_line_start": 1,
+      "tf_mod_version": "8.1.0",
+      "tf_path": "module.sas_elasticache_redis"
+    }
+  ],
+  "hmpps_egress_controls": [],
+  "hmpps_template": [
+    {
+      "application": "hmpps-community-accommodation-tier-2-bail-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-community-accommodation-tier-2-bail-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [
+        "main"
+      ],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "hmpps-community-accommodation-tier-2-bail-ui.tf",
+      "tf_label": "hmpps-community-accommodation-tier-2-bail-ui",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-community-accommodation-tier-2-bail-ui"
+    },
+    {
+      "application": "hmpps-approved-premises-api",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-approved-premises-api",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "hmpps-approved-premises-api.tf",
+      "tf_label": "hmpps_approved_premises_api",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_approved_premises_api"
+    },
+    {
+      "application": "hmpps-approved-premises-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-approved-premises-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "hmpps-approved-premises-ui.tf",
+      "tf_label": "hmpps_approved_premises_ui",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_approved_premises_ui"
+    },
+    {
+      "application": "hmpps-community-accommodation-tier-2-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-community-accommodation-tier-2-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "hmpps-community-accommodation-tier-2-ui.tf",
+      "tf_label": "hmpps_community_accommodation_tier_2_ui",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_community_accommodation_tier_2_ui"
+    },
+    {
+      "application": "hmpps-single-accommodation-service-api",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-single-accommodation-service-api",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [
+        "main"
+      ],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "hmpps-single-accommodation-service-api.tf",
+      "tf_label": "hmpps_single_accommodation_service_api",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_single_accommodation_service_api"
+    },
+    {
+      "application": "hmpps-single-accommodation-service-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-single-accommodation-service-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [
+        "main"
+      ],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "hmpps-single-accommodation-service-ui.tf",
+      "tf_label": "hmpps_single_accommodation_service_ui",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_single_accommodation_service_ui"
+    },
+    {
+      "application": "hmpps-temporary-accommodation-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-temporary-accommodation-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-community-accommodation-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "hmpps-community-accommodation-live"
+      ],
+      "selected_branch_patterns": [
+        "main"
+      ],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "hmpps-temporary-accommodation-ui.tf",
+      "tf_label": "hmpps_temporary_accommodation_ui",
+      "tf_line_end": 18,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_temporary_accommodation_ui"
+    }
+  ],
+  "name": "hmpps-community-accommodation-prod",
+  "pingdom_check": [
+    {
+      "encryption": true,
+      "host": "health-kick.prison.service.justice.gov.uk",
+      "integrationids": [
+        130656,
+        130657
+      ],
+      "name": "HMPPS - approved-premises-api - Production",
+      "notifyagainevery": 0,
+      "notifywhenbackup": true,
+      "port": 443,
+      "probefilters": "region:EU",
+      "resolution": 1,
+      "sendnotificationwhendown": 6,
+      "tf_filename": "pingdom.tf",
+      "tf_label": "pingdom_check",
+      "tf_line_end": 66,
+      "tf_line_start": 52,
+      "tf_path": "pingdom_check.hmpps-approved-premises-api",
+      "type": "http",
+      "url": "/https/approved-premises-api.hmpps.service.justice.gov.uk/health"
+    },
+    {
+      "encryption": true,
+      "host": "health-kick.prison.service.justice.gov.uk",
+      "integrationids": [
+        130656,
+        130657
+      ],
+      "name": "HMPPS - approved-premises/CAS1 - Production",
+      "notifyagainevery": 0,
+      "notifywhenbackup": true,
+      "port": 443,
+      "probefilters": "region:EU",
+      "resolution": 1,
+      "sendnotificationwhendown": 6,
+      "tf_filename": "pingdom.tf",
+      "tf_label": "pingdom_check",
+      "tf_line_end": 18,
+      "tf_line_start": 4,
+      "tf_path": "pingdom_check.hmpps-approved-premises-ui",
+      "type": "http",
+      "url": "/https/approved-premises.hmpps.service.justice.gov.uk/health"
+    },
+    {
+      "encryption": true,
+      "host": "health-kick.prison.service.justice.gov.uk",
+      "integrationids": [
+        133623
+      ],
+      "name": "HMPPS - short-term-accommodation-cas-2/CAS2 - Production",
+      "notifyagainevery": 0,
+      "notifywhenbackup": true,
+      "port": 443,
+      "probefilters": "region:EU",
+      "resolution": 1,
+      "sendnotificationwhendown": 6,
+      "tf_filename": "pingdom.tf",
+      "tf_label": "pingdom_check",
+      "tf_line_end": 34,
+      "tf_line_start": 20,
+      "tf_path": "pingdom_check.hmpps-community-accommodation-tier-2-ui",
+      "type": "http",
+      "url": "/https/short-term-accommodation-cas-2.hmpps.service.justice.gov.uk/health"
+    },
+    {
+      "encryption": true,
+      "host": "health-kick.prison.service.justice.gov.uk",
+      "integrationids": [
+        130657
+      ],
+      "name": "HMPPS - transitional-accommodation/CAS3 - Production",
+      "notifyagainevery": 0,
+      "notifywhenbackup": true,
+      "port": 443,
+      "probefilters": "region:EU",
+      "resolution": 1,
+      "sendnotificationwhendown": 6,
+      "tf_filename": "pingdom.tf",
+      "tf_label": "pingdom_check",
+      "tf_line_end": 50,
+      "tf_line_start": 36,
+      "tf_path": "pingdom_check.hmpps-temporary-accommodation-ui",
+      "type": "http",
+      "url": "/https/transitional-accommodation.hmpps.service.justice.gov.uk/health"
+    }
+  ],
+  "rds_instance": [
+    {
+      "allow_major_version_upgrade": "true",
+      "allow_minor_version_upgrade": "true",
+      "application": "Community Accommodation",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18",
+      "db_instance_class": "db.t4g.small",
+      "db_max_allocated_storage": null,
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "40000"
+        }
+      ],
+      "deletion_protection": null,
+      "environment_name": "prod",
+      "infrastructure_support": "casdev@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": null,
+      "namespace": "hmpps-community-accommodation-prod",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres18",
+      "team_name": "hmpps-community-accommodation-live",
+      "tf_filename": "rds-accommodation-data-domain.tf",
+      "tf_label": "accommodation_data_domain_rds",
+      "tf_line_end": 51,
+      "tf_line_start": 1,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.accommodation_data_domain_rds"
+    },
+    {
+      "allow_major_version_upgrade": "false",
+      "allow_minor_version_upgrade": null,
+      "application": "Community Accommodation",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "14",
+      "db_instance_class": "db.t3.xlarge",
+      "db_max_allocated_storage": null,
+      "db_parameter": null,
+      "deletion_protection": null,
+      "environment_name": "prod",
+      "infrastructure_support": "casdev@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": null,
+      "namespace": "hmpps-community-accommodation-prod",
+      "performance_insights_enabled": true,
+      "rds_family": "postgres14",
+      "team_name": "hmpps-community-accommodation-live",
+      "tf_filename": "rds.tf",
+      "tf_label": "rds",
+      "tf_line_end": 24,
+      "tf_line_start": 1,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.rds"
+    },
+    {
+      "allow_major_version_upgrade": "false",
+      "allow_minor_version_upgrade": "true",
+      "application": "Community Accommodation",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18.6",
+      "db_instance_class": "db.t3.xlarge",
+      "db_max_allocated_storage": null,
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "40000"
+        }
+      ],
+      "deletion_protection": null,
+      "environment_name": "prod",
+      "infrastructure_support": "casdev@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": null,
+      "namespace": "hmpps-community-accommodation-prod",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres18",
+      "team_name": "hmpps-community-accommodation-live",
+      "tf_filename": "rds-single-accommodation-service.tf",
+      "tf_label": "single_accommodation_service_rds",
+      "tf_line_end": 51,
+      "tf_line_start": 1,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.single_accommodation_service_rds"
+    }
+  ]
+}

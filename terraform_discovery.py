@@ -15,7 +15,7 @@ from hmpps.services.job_log_handling import (
 
 # import json
 from git import Repo
-from tfparse import load_from_path
+from tf_parser import load_from_path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -39,6 +39,7 @@ TEMP_DIR = os.getenv('TEMP_DIR', '/tmp/cp_envs')
 
 # global namespace to keep track of the ones that have been processed
 namespaces = []
+
 
 def extract_module_version(module):
   regex = r'(?<=[\\?]ref=)[0-9]+(\.[0-9]+){0,2}$'
@@ -226,6 +227,45 @@ def extract_pingdom_check(parsed):
   return pingdom_checks
 
 
+def build_namespace_data(namespace, parsed):
+  data = {
+    'name': namespace,
+    'rds_instance': [],
+    'elasticache_cluster': [],
+    'hmpps_egress_controls': [],
+    'hmpps_template': [],
+    'pingdom_check': [],
+  }
+
+  for module in parsed.get('module', []):
+    # Get terraform module version
+    module['tf_mod_version'] = extract_module_version(module)
+    # Same goes for namespace
+    module['namespace'] = namespace
+    source = module.get('source') or ''
+
+    # Check if the namespace uses the cloud-platform-terraform-hmpps-template
+    if 'cloud-platform-terraform-hmpps-template' in source:
+      data['hmpps_template'].append(extract_cloud_platform_template(module))
+
+    # Look for RDS instances.
+    if 'cloud-platform-terraform-rds-instance' in source:
+      data['rds_instance'].append(extract_rds_instance(module))
+
+    # Look for elasticache instances.
+    if 'cloud-platform-terraform-elasticache-cluster' in source:
+      data['elasticache_cluster'].append(extract_elasticache_cluster(module))
+
+    # Look for hmpps-egress-controls instances.
+    if 'cloud-platform-terraform-hmpps-egress-controls' in source:
+      data['hmpps_egress_controls'].append(extract_hmpps_egress_controls(module))
+
+  if 'pingdom_check' in parsed.keys():
+    data['pingdom_check'] = extract_pingdom_check(parsed)
+
+  return data
+
+
 def process_repo(component, lock, services):
   global namespaces
   sc = services.sc
@@ -242,15 +282,6 @@ def process_repo(component, lock, services):
     namespace_id = sc.get_id('namespaces', 'name', namespace)
     log_debug(f'Namespace ID: {namespace_id}')
 
-    data = {
-      'name': namespace,
-      'rds_instance': [],
-      'elasticache_cluster': [],
-      'hmpps_egress_controls': [],
-      'hmpps_template': [],
-      'pingdom_check': [],
-    }
-
     resources_dir = (
       f'{TEMP_DIR}/namespaces/live.cloud-platform.service.justice.gov.uk/'
       f'{namespace}/resources'
@@ -260,35 +291,7 @@ def process_repo(component, lock, services):
     if not os.path.isdir(resources_dir):
       continue
 
-    # tfparse is not thread-safe!
-    with lock:
-      log_debug(f'Thread locked for tfparse: {resources_dir}')
-      parsed = load_from_path(resources_dir)
-    for module in parsed['module']:
-      # Get terraform module version
-      module['tf_mod_version'] = extract_module_version(module)
-      # Same goes for namespace
-      module['namespace'] = namespace
-      source = module.get('source') or ''
-
-      # Check if the namespace uses the cloud-platform-terraform-hmpps-template
-      if 'cloud-platform-terraform-hmpps-template' in source:
-        data['hmpps_template'].append(extract_cloud_platform_template(module))
-
-      # Look for RDS instances.
-      if 'cloud-platform-terraform-rds-instance' in source:
-        data['rds_instance'].append(extract_rds_instance(module))
-
-      # Look for elasticache instances.
-      if 'cloud-platform-terraform-elasticache-cluster' in source:
-        data['elasticache_cluster'].append(extract_elasticache_cluster(module))
-
-      # Look for hmpps-egress-controls instances.
-      if 'cloud-platform-terraform-hmpps-egress-controls' in source:
-        data['hmpps_egress_controls'].append(extract_hmpps_egress_controls(module))
-
-    if 'pingdom_check' in parsed.keys():
-      data['pingdom_check'] = extract_pingdom_check(parsed)
+    data = build_namespace_data(namespace, load_from_path(resources_dir))
 
     if not namespace_id:
       log_debug(f'Adding new namespace to SC: {data}')
