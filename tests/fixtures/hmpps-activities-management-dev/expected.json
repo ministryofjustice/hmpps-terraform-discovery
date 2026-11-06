@@ -1,0 +1,217 @@
+{
+  "elasticache_cluster": [
+    {
+      "application": "activities",
+      "business_unit": "HMPPS",
+      "engine_version": "7.1",
+      "environment_name": "dev",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "false",
+      "namespace": "hmpps-activities-management-dev",
+      "node_type": "cache.t4g.small",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "activities-and-appointments",
+      "tf_filename": "elasticache.tf",
+      "tf_label": "elasticache_redis",
+      "tf_line_end": 19,
+      "tf_line_start": 1,
+      "tf_mod_version": "8.0.0",
+      "tf_path": "module.elasticache_redis"
+    }
+  ],
+  "hmpps_egress_controls": [
+    {
+      "enable_egress_controls": true,
+      "enable_envoy_setup": true,
+      "envoy_extra_allowed_hosts_exact": [
+        "www.gov.uk",
+        "o345774.ingest.sentry.io",
+        "moj-reg-dev.s3.eu-west-2.amazonaws.com"
+      ],
+      "envoy_extra_allowed_hosts_suffixes": [],
+      "namespace": "hmpps-activities-management-dev",
+      "tf_filename": "egress-controls.tf",
+      "tf_label": "hmpps_egress_controls",
+      "tf_line_end": 22,
+      "tf_line_start": 4,
+      "tf_mod_version": "0.0.11",
+      "tf_path": "module.hmpps_egress_controls"
+    }
+  ],
+  "hmpps_template": [
+    {
+      "application": "hmpps-activities-management",
+      "application_insights_instance": "dev",
+      "environment_name": null,
+      "github_repo": "hmpps-activities-management",
+      "github_team_name": null,
+      "is_production": "false",
+      "namespace": "hmpps-activities-management-dev",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-activities-management",
+      "tf_line_end": 35,
+      "tf_line_start": 19,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-activities-management"
+    },
+    {
+      "application": "hmpps-activities-management-api",
+      "application_insights_instance": "dev",
+      "environment_name": null,
+      "github_repo": "hmpps-activities-management-api",
+      "github_team_name": null,
+      "is_production": "false",
+      "namespace": "hmpps-activities-management-dev",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-activities-management-api",
+      "tf_line_end": 17,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-activities-management-api"
+    },
+    {
+      "application": "hmpps-activities-management-orchestrator-api",
+      "application_insights_instance": "dev",
+      "environment_name": null,
+      "github_repo": "hmpps-activities-management-orchestrator-api",
+      "github_team_name": null,
+      "is_production": "false",
+      "namespace": "hmpps-activities-management-dev",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-activities-management-orchestrator-api",
+      "tf_line_end": 53,
+      "tf_line_start": 37,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-activities-management-orchestrator-api"
+    }
+  ],
+  "name": "hmpps-activities-management-dev",
+  "pingdom_check": [],
+  "rds_instance": [
+    {
+      "allow_major_version_upgrade": "false",
+      "allow_minor_version_upgrade": "true",
+      "application": "activities",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "17.11",
+      "db_instance_class": "db.t4g.small",
+      "db_max_allocated_storage": "50",
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "5000"
+        }
+      ],
+      "deletion_protection": true,
+      "environment_name": "dev",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "false",
+      "maintenance_window": null,
+      "namespace": "hmpps-activities-management-dev",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres17",
+      "team_name": "activities-and-appointments",
+      "tf_filename": "rds.tf",
+      "tf_label": "activities_rds",
+      "tf_line_end": 78,
+      "tf_line_start": 21,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.activities_rds"
+    },
+    {
+      "allow_major_version_upgrade": "false",
+      "allow_minor_version_upgrade": "true",
+      "application": "activities",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "17.11",
+      "db_instance_class": "db.t4g.small",
+      "db_max_allocated_storage": "50",
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "5000"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "hot_standby_feedback",
+          "value": "1"
+        }
+      ],
+      "deletion_protection": null,
+      "environment_name": "dev",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "false",
+      "maintenance_window": null,
+      "namespace": "hmpps-activities-management-dev",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres17",
+      "team_name": "activities-and-appointments",
+      "tf_filename": "rds.tf",
+      "tf_label": "activities_rds_read_replica",
+      "tf_line_end": 157,
+      "tf_line_start": 95,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.activities_rds_read_replica"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "elasticache_cluster": [
+    {
+      "application": "hmpps-arns-assessment-platform-api",
+      "business_unit": "HMPPS",
+      "engine_version": "7.0",
+      "environment_name": "dev",
+      "infrastructure_support": "arns@justice.gov.uk",
+      "is_production": "false",
+      "namespace": "hmpps-arns-assessment-platform-dev",
+      "node_type": "cache.t4g.micro",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "hmpps-assessments-devs",
+      "tf_filename": "aap-api.tf",
+      "tf_label": "assessment-query-cache-elasticache-redis",
+      "tf_line_end": 39,
+      "tf_line_start": 19,
+      "tf_mod_version": "8.1.0",
+      "tf_path": "module.assessment-query-cache-elasticache-redis"
+    },
+    {
+      "application": "hmpps-arns-assessment-platform-ui",
+      "business_unit": "HMPPS",
+      "engine_version": "7.0",
+      "environment_name": "dev",
+      "infrastructure_support": "arns@justice.gov.uk",
+      "is_production": "false",
+      "namespace": "hmpps-arns-assessment-platform-dev",
+      "node_type": "cache.t4g.micro",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "hmpps-assessments-devs",
+      "tf_filename": "aap-ui.tf",
+      "tf_label": "elasticache_redis",
+      "tf_line_end": 39,
+      "tf_line_start": 19,
+      "tf_mod_version": "8.0.0",
+      "tf_path": "module.elasticache_redis"
+    }
+  ],
+  "hmpps_egress_controls": [],
+  "hmpps_template": [
+    {
+      "application": "hmpps-arns-assessment-platform-api",
+      "application_insights_instance": "dev",
+      "environment_name": null,
+      "github_repo": "hmpps-arns-assessment-platform-api",
+      "github_team_name": null,
+      "is_production": "false",
+      "namespace": "hmpps-arns-assessment-platform-dev",
+      "prevent_self_review": null,
+      "protected_branches_only": null,
+      "reviewer_teams": [],
+      "selected_branch_patterns": [
+        "*"
+      ],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "aap-api.tf",
+      "tf_label": "hmpps_arns_assessment_platform_api",
+      "tf_line_end": 16,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_arns_assessment_platform_api"
+    },
+    {
+      "application": "hmpps-arns-assessment-platform-ui",
+      "application_insights_instance": "dev",
+      "environment_name": null,
+      "github_repo": "hmpps-arns-assessment-platform-ui",
+      "github_team_name": null,
+      "is_production": "false",
+      "namespace": "hmpps-arns-assessment-platform-dev",
+      "prevent_self_review": null,
+      "protected_branches_only": null,
+      "reviewer_teams": [],
+      "selected_branch_patterns": [
+        "*"
+      ],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "aap-ui.tf",
+      "tf_label": "hmpps_arns_assessment_platform_ui",
+      "tf_line_end": 16,
+      "tf_line_start": 1,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps_arns_assessment_platform_ui"
+    }
+  ],
+  "name": "hmpps-arns-assessment-platform-dev",
+  "pingdom_check": [],
+  "rds_instance": [
+    {
+      "allow_major_version_upgrade": false,
+      "allow_minor_version_upgrade": true,
+      "application": "ARNS Assessment Platform",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18.6",
+      "db_instance_class": "db.t4g.large",
+      "db_max_allocated_storage": "500",
+      "db_parameter": null,
+      "deletion_protection": null,
+      "environment_name": "dev",
+      "infrastructure_support": "arns@justice.gov.uk",
+      "is_production": "false",
+      "maintenance_window": null,
+      "namespace": "hmpps-arns-assessment-platform-dev",
+      "performance_insights_enabled": false,
+      "rds_family": "postgres18",
+      "team_name": "hmpps-assessments-devs",
+      "tf_filename": "rds-postgres.tf",
+      "tf_label": "rds",
+      "tf_line_end": 38,
+      "tf_line_start": 1,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.rds"
+    }
+  ]
+}

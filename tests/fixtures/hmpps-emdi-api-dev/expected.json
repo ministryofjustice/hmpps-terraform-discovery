@@ -1,0 +1,8 @@
+{
+  "elasticache_cluster": [],
+  "hmpps_egress_controls": [],
+  "hmpps_template": [],
+  "name": "hmpps-emdi-api-dev",
+  "pingdom_check": [],
+  "rds_instance": []
+}

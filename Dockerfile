@@ -1,23 +1,14 @@
-FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim
-WORKDIR /app
+FROM ghcr.io/ministryofjustice/hmpps-python:python3.13-alpine AS base
 
-RUN apt update \
-    && apt -y upgrade \
-    && apt install -y --no-install-recommends git \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN addgroup --gid 2000 --system appgroup && \
-    adduser --uid 2000 --system appuser --gid 2000 --home /home/appuser
-
-# Ensure the workdir is owned by the unprivileged user before switching
-RUN chown -R 2000:2000 /app
+# git is needed to clone cloud-platform-environments
+USER root
+RUN apk add --no-cache git
 
 USER 2000
 # initialise uv
-COPY pyproject.toml .
-RUN uv sync
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
-# copy the dependencies from builder stage
-COPY ./terraform_discovery.py .
+COPY ./terraform_discovery.py ./tf_parser.py ./
 
-CMD [ "uv", "run", "python", "-u", "terraform_discovery.py" ]
+CMD [ "uv", "run", "--no-dev", "python", "-u", "terraform_discovery.py" ]

@@ -1,0 +1,406 @@
+{
+  "elasticache_cluster": [
+    {
+      "application": "HMPPS Locations Inside Prison Service",
+      "business_unit": "HMPPS",
+      "engine_version": "7.1",
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "node_type": "cache.t4g.small",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "elasticache.tf",
+      "tf_label": "elasticache_redis",
+      "tf_line_end": 21,
+      "tf_line_start": 1,
+      "tf_mod_version": "8.0.0",
+      "tf_path": "module.elasticache_redis"
+    },
+    {
+      "application": "HMPPS Locations Inside Prison Service",
+      "business_unit": "HMPPS",
+      "engine_version": "7.1",
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "node_type": "cache.t4g.micro",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "elasticache.tf",
+      "tf_label": "non_residential_locations_ui_elasticache_redis",
+      "tf_line_end": 42,
+      "tf_line_start": 23,
+      "tf_mod_version": "8.0.0",
+      "tf_path": "module.non_residential_locations_ui_elasticache_redis"
+    },
+    {
+      "application": "HMPPS Locations Inside Prison Service",
+      "business_unit": "HMPPS",
+      "engine_version": "7.1",
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "node_type": "cache.t4g.micro",
+      "number_cache_clusters": "2",
+      "parameter_group_name": "default.redis7",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "prisoner-property-ui.tf",
+      "tf_label": "prisoner_property_ui_elasticache_redis",
+      "tf_line_end": 42,
+      "tf_line_start": 23,
+      "tf_mod_version": "8.2.0",
+      "tf_path": "module.prisoner_property_ui_elasticache_redis"
+    }
+  ],
+  "hmpps_egress_controls": [],
+  "hmpps_template": [
+    {
+      "application": "hmpps-locations-inside-prison",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-locations-inside-prison",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "move-a-prisoner"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-locations-inside-prison",
+      "tf_line_end": 38,
+      "tf_line_start": 21,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-locations-inside-prison"
+    },
+    {
+      "application": "hmpps-locations-inside-prison-api",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-locations-inside-prison-api",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "move-a-prisoner"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-locations-inside-prison-api",
+      "tf_line_end": 19,
+      "tf_line_start": 2,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-locations-inside-prison-api"
+    },
+    {
+      "application": "hmpps-non-residential-locations-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-non-residential-locations-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "map-developers-live"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-non-residential-locations-ui",
+      "tf_line_end": 57,
+      "tf_line_start": 40,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-non-residential-locations-ui"
+    },
+    {
+      "application": "hmpps-prisoner-property-api",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-prisoner-property-api",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "move-a-prisoner"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-kotlin",
+      "tf_filename": "github.tf",
+      "tf_label": "hmpps-prisoner-property-api",
+      "tf_line_end": 74,
+      "tf_line_start": 59,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-prisoner-property-api"
+    },
+    {
+      "application": "hmpps-prisoner-property-ui",
+      "application_insights_instance": "prod",
+      "environment_name": null,
+      "github_repo": "hmpps-prisoner-property-ui",
+      "github_team_name": null,
+      "is_production": "true",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "prevent_self_review": null,
+      "protected_branches_only": true,
+      "reviewer_teams": [
+        "move-a-prisoner"
+      ],
+      "selected_branch_patterns": [],
+      "source_template_repo": "hmpps-template-typescript",
+      "tf_filename": "prisoner-property-ui.tf",
+      "tf_label": "hmpps-prisoner-property-ui",
+      "tf_line_end": 20,
+      "tf_line_start": 5,
+      "tf_mod_version": "1.2.1",
+      "tf_path": "module.hmpps-prisoner-property-ui"
+    }
+  ],
+  "name": "hmpps-locations-inside-prison-prod",
+  "pingdom_check": [],
+  "rds_instance": [
+    {
+      "allow_major_version_upgrade": "false",
+      "allow_minor_version_upgrade": "true",
+      "application": "HMPPS Locations Inside Prison Service",
+      "backup_window": "22:00-23:59",
+      "business_unit": "HMPPS",
+      "db_engine_version": "18.6",
+      "db_instance_class": "db.t4g.large",
+      "db_max_allocated_storage": null,
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "40000"
+        }
+      ],
+      "deletion_protection": true,
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": "sun:00:00-sun:03:00",
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres18",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "rds.tf",
+      "tf_label": "dps_rds",
+      "tf_line_end": 64,
+      "tf_line_start": 6,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.dps_rds"
+    },
+    {
+      "allow_major_version_upgrade": "false",
+      "allow_minor_version_upgrade": "true",
+      "application": "HMPPS Locations Inside Prison Service",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18.6",
+      "db_instance_class": "db.t4g.large",
+      "db_max_allocated_storage": null,
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.force_ssl",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pg_tle,pg_stat_statements,pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "40000"
+        }
+      ],
+      "deletion_protection": true,
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": null,
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "performance_insights_enabled": true,
+      "rds_family": "postgres18",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "prisoner-property-rds.tf",
+      "tf_label": "prisoner_property_rds",
+      "tf_line_end": 83,
+      "tf_line_start": 7,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.prisoner_property_rds"
+    },
+    {
+      "allow_major_version_upgrade": null,
+      "allow_minor_version_upgrade": null,
+      "application": "HMPPS Locations Inside Prison Service",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18.6",
+      "db_instance_class": "db.t4g.large",
+      "db_max_allocated_storage": null,
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "40000"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "hot_standby_feedback",
+          "value": "1"
+        }
+      ],
+      "deletion_protection": null,
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": null,
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres18",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "rds.tf",
+      "tf_label": "dps_rds_replica[0]",
+      "tf_line_end": 147,
+      "tf_line_start": 70,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.dps_rds_replica[0]"
+    },
+    {
+      "allow_major_version_upgrade": null,
+      "allow_minor_version_upgrade": null,
+      "application": "HMPPS Locations Inside Prison Service",
+      "backup_window": null,
+      "business_unit": "HMPPS",
+      "db_engine_version": "18.6",
+      "db_instance_class": "db.t4g.large",
+      "db_max_allocated_storage": null,
+      "db_parameter": [
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.force_ssl",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "rds.logical_replication",
+          "value": "1"
+        },
+        {
+          "apply_method": "pending-reboot",
+          "name": "shared_preload_libraries",
+          "value": "pg_tle,pg_stat_statements,pglogical"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_wal_size",
+          "value": "1024"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "wal_sender_timeout",
+          "value": "0"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "max_slot_wal_keep_size",
+          "value": "40000"
+        },
+        {
+          "apply_method": "immediate",
+          "name": "hot_standby_feedback",
+          "value": "1"
+        }
+      ],
+      "deletion_protection": null,
+      "environment_name": "production",
+      "infrastructure_support": "dps-hmpps@digital.justice.gov.uk",
+      "is_production": "true",
+      "maintenance_window": null,
+      "namespace": "hmpps-locations-inside-prison-prod",
+      "performance_insights_enabled": null,
+      "rds_family": "postgres18",
+      "team_name": "locations-inside-prison",
+      "tf_filename": "prisoner-property-rds.tf",
+      "tf_label": "prisoner_property_rds_replica[0]",
+      "tf_line_end": 177,
+      "tf_line_start": 91,
+      "tf_mod_version": "9.2.0",
+      "tf_path": "module.prisoner_property_rds_replica[0]"
+    }
+  ]
+}
